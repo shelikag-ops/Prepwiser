@@ -43,6 +43,50 @@
     .btn-selector.active { background: var(--color-saffron); color: white; border-color: var(--color-saffron); }
     .selector-group { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
     .selector-label { font-size: 13px; font-weight: 600; color: var(--color-mid-brown); text-transform: uppercase; margin-right: 8px; align-self: center; }
+    .week-grid { display: grid; grid-template-columns: 90px repeat(7, 1fr); gap: 0; margin-bottom: 24px; border: 1px solid var(--color-border); border-radius: var(--border-radius); overflow: hidden; background: white; }
+    .week-header { background: var(--color-deep-brown); color: white; font-size: 12px; font-weight: 600; text-align: center; padding: 10px 4px; text-transform: uppercase; }
+    .week-header.today { background: var(--color-saffron); color: var(--color-deep-brown); }
+    .week-time-label { background: #f9f3ec; font-size: 11px; font-weight: 600; color: var(--color-saffron); padding: 8px 6px; display: flex; align-items: center; justify-content: center; text-align: center; border-bottom: 1px solid var(--color-border); border-right: 1px solid var(--color-border); }
+    .meal-cell { border-bottom: 1px solid var(--color-border); border-right: 1px solid var(--color-border); padding: 6px; min-height: 70px; transition: all 200ms; position: relative; cursor: pointer; }
+    .meal-cell:hover { background: #FFF8E1; }
+    .meal-cell.drop-target { background: #FFF8E1; box-shadow: inset 0 0 0 2px var(--color-saffron); }
+    .meal-cell-name { font-size: 12px; font-weight: 600; color: var(--color-deep-brown); line-height: 1.3; }
+    .meal-cell-kcal { font-size: 10px; color: var(--color-mid-brown); margin-top: 2px; }
+    .meal-cell-empty { font-size: 11px; color: var(--color-mid-brown); opacity: 0.4; font-style: italic; }
+    .meal-cell-clear { position: absolute; top: 3px; right: 3px; width: 18px; height: 18px; border-radius: 50%; background: rgba(192,57,43,0.1); color: var(--color-red); font-size: 11px; line-height: 18px; text-align: center; cursor: pointer; display: none; border: none; padding: 0; font-family: var(--font-family); }
+    .meal-cell:hover .meal-cell-clear { display: block; }
+    .meal-cell-clear:hover { background: var(--color-red); color: white; }
+    /* Type-to-search autocomplete */
+    .meal-cell-search { position: relative; width: 100%; height: 100%; }
+    .meal-cell-input { width: 100%; padding: 4px 6px; border: 1px solid var(--color-saffron); border-radius: 4px; font-size: 12px; font-family: var(--font-family); color: var(--color-deep-brown); background: white; outline: none; box-shadow: 0 0 0 2px rgba(232,130,12,0.2); }
+    .meal-suggest { position: absolute; top: 100%; left: -6px; right: -6px; background: white; border: 1px solid var(--color-border); border-top: none; border-radius: 0 0 6px 6px; max-height: 180px; overflow-y: auto; z-index: 100; box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
+    .meal-suggest-item { padding: 6px 8px; font-size: 12px; cursor: pointer; border-bottom: 1px solid rgba(0,0,0,0.04); display: flex; justify-content: space-between; align-items: center; }
+    .meal-suggest-item:last-child { border-bottom: none; }
+    .meal-suggest-item:hover, .meal-suggest-item.active { background: #FFF8E1; }
+    .meal-suggest-name { font-weight: 600; color: var(--color-deep-brown); }
+    .meal-suggest-cat { font-size: 10px; color: var(--color-mid-brown); }
+    .meal-suggest-empty { padding: 8px; font-size: 11px; color: var(--color-mid-brown); font-style: italic; text-align: center; }
+    .week-day-total { font-size: 10px; color: var(--color-mid-brown); text-align: center; padding: 6px 4px; border-right: 1px solid var(--color-border); font-weight: 500; }
+    .week-total-label { background: #f9f3ec; font-size: 11px; font-weight: 600; color: var(--color-mid-brown); padding: 6px; display: flex; align-items: center; justify-content: center; border-right: 1px solid var(--color-border); }
+    /* Tenets Modal */
+    .tenets-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:900; justify-content:center; align-items:flex-start; padding:40px 20px; overflow-y:auto; }
+    .tenets-overlay.active { display:flex; }
+    .tenets-modal { background:var(--color-cream); border-radius:var(--border-radius); max-width:720px; width:100%; max-height:85vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,0.3); }
+    .tenets-header { background:var(--color-deep-brown); color:white; padding:16px 24px; border-radius:var(--border-radius) var(--border-radius) 0 0; display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:1; }
+    .tenets-header h2 { font-size:18px; font-weight:700; margin:0; }
+    .tenets-close { background:none; border:none; color:white; font-size:22px; cursor:pointer; padding:4px 8px; }
+    .tenets-body { padding:20px 24px; }
+    .tenet-section { margin-bottom:20px; }
+    .tenet-section h3 { font-size:14px; font-weight:700; color:var(--color-saffron); margin-bottom:10px; text-transform:uppercase; letter-spacing:0.5px; }
+    .tenet-row { display:flex; align-items:flex-start; gap:10px; padding:8px 0; border-bottom:1px solid rgba(0,0,0,0.06); }
+    .tenet-row:last-child { border-bottom:none; }
+    .tenet-toggle { width:18px; height:18px; accent-color:var(--color-green); margin-top:2px; flex-shrink:0; }
+    .tenet-label { font-size:13px; color:var(--color-deep-brown); line-height:1.5; flex:1; }
+    .tenet-label strong { color:var(--color-saffron); }
+    .tenet-input { padding:6px 10px; border:1px solid var(--color-border); border-radius:6px; font-size:13px; font-family:var(--font-family); width:80px; }
+    .tenet-textarea { width:100%; padding:8px 10px; border:1px solid var(--color-border); border-radius:6px; font-size:12px; font-family:var(--font-family); min-height:60px; resize:vertical; margin-top:6px; }
+    .tenets-footer { padding:16px 24px; border-top:1px solid var(--color-border); display:flex; gap:10px; justify-content:flex-end; position:sticky; bottom:0; background:var(--color-cream); }
+    /* Legacy single-day grid (kept for Kitchen Mode) */
     .meal-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 24px; }
     .meal-card { background: white; border: 2px solid var(--color-border); border-radius: var(--border-radius); padding: 14px; min-height: 120px; cursor: pointer; transition: all 200ms; }
     .meal-card:hover { border-color: var(--color-saffron); box-shadow: 0 4px 12px var(--color-hover-shadow); }
@@ -175,11 +219,19 @@
     <div class="header"><h1 id="page-title">Meal Plan</h1></div>
     <div class="content">
       <div id="meal-plan" class="tab-content active">
-        <div class="selector-group"><span class="selector-label">Week:</span><button class="btn-selector active" onclick="setWeek(1)">Week 1</button><button class="btn-selector" onclick="setWeek(2)">Week 2</button><button class="btn-selector" onclick="setWeek(3)">Week 3</button></div>
-        <div class="selector-group"><span class="selector-label">Day:</span><button class="btn-selector active" data-day="0" onclick="setDay(0)">Sat</button><button class="btn-selector" data-day="1" onclick="setDay(1)">Sun</button><button class="btn-selector" data-day="2" onclick="setDay(2)">Mon</button><button class="btn-selector" data-day="3" onclick="setDay(3)">Tue</button><button class="btn-selector" data-day="4" onclick="setDay(4)">Wed</button><button class="btn-selector" data-day="5" onclick="setDay(5)">Thu</button><button class="btn-selector" data-day="6" onclick="setDay(6)">Fri</button></div>
-        <div class="progress-bar"><span>Meals planned: <strong id="meals-count">0</strong>/5</span><span>Prep steps done: <strong id="prep-done-count">0</strong></span></div>
-        <button class="btn-primary" onclick="enterKitchenMode()" style="margin-bottom:20px">🎯 Kitchen Mode</button>
-        <div class="meal-grid" id="meal-grid"></div>
+        <div style="display:flex;gap:12px;align-items:center;margin-bottom:16px;flex-wrap:wrap">
+          <div class="selector-group" style="margin-bottom:0"><span class="selector-label">Week:</span><button class="btn-selector active" onclick="setWeek(1)">Week 1</button><button class="btn-selector" onclick="setWeek(2)">Week 2</button><button class="btn-selector" onclick="setWeek(3)">Week 3</button></div>
+          <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+            <span style="font-size:13px;color:var(--color-mid-brown)">Meals planned: <strong id="meals-count">0</strong>/35</span>
+            <button class="btn-primary" onclick="enterKitchenMode()" style="font-size:12px;padding:6px 12px">🎯 Kitchen Mode</button>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
+          <p style="font-size:12px;color:var(--color-mid-brown);margin:0">Drag recipes from the <strong>Recipe Book</strong> tab and drop them onto any slot below.</p>
+          <button class="btn-secondary" onclick="generateMealPlan()" style="margin-left:auto;font-size:12px;padding:6px 14px">✨ Auto-Generate Plan</button>
+          <button class="btn-secondary" onclick="if(confirm('Clear all meals for Week '+state.currentWeek+'?')){clearWeek();}" style="font-size:12px;padding:6px 14px;color:var(--color-red);border-color:var(--color-red)">🗑 Clear Week</button>
+        </div>
+        <div id="week-grid-container"></div>
         <div class="prep-panel"><h3>🌅 Morning Prep</h3><div id="morning-prep-steps"></div></div>
         <div class="prep-panel"><h3>🌙 Evening Prep</h3><div id="evening-prep-steps"></div></div>
       </div>
@@ -311,6 +363,21 @@
 
     </div>
   </div>
+  <!-- TENETS MODAL -->
+  <div class="tenets-overlay" id="tenets-overlay">
+    <div class="tenets-modal">
+      <div class="tenets-header">
+        <h2>Meal Plan Tenets</h2>
+        <button class="tenets-close" onclick="closeTenets()">&times;</button>
+      </div>
+      <div class="tenets-body" id="tenets-body"></div>
+      <div class="tenets-footer">
+        <button class="btn-secondary" onclick="closeTenets()">Cancel</button>
+        <button class="btn-primary" onclick="generateFromTenets()">✨ Generate Plan</button>
+      </div>
+    </div>
+  </div>
+
   <div class="kitchen-mode-overlay" id="kitchen-overlay">
     <button class="kitchen-close" onclick="exitKitchenMode()">✕</button>
     <div class="kitchen-progress"><span id="kitchen-step-num">1</span> / <span id="kitchen-step-total">1</span></div>
@@ -622,13 +689,80 @@
       {id:'cheesy-mushrooms', name:'Cheesy Mushrooms', category:'Starters', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['starters'], servings:4},
       {id:'moong-dal-tikki', name:'Moong Dal tikki', category:'Starters', url:'https://www.archanaskitchen.com/moong-dal-tikki-recipe', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['starters'], servings:4},
       {id:'freshly-squeezed-juice', name:'Freshly Squeezed Juice', category:'Drinks', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['drinks/mocktails'], servings:4},
-      {id:'plum-soda', name:'Plum Soda', category:'Drinks', url:'https://frombowltosoul.com/sparkling-plum-drink-recipe/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['drinks/mocktails'], servings:4}
+      {id:'plum-soda', name:'Plum Soda', category:'Drinks', url:'https://frombowltosoul.com/sparkling-plum-drink-recipe/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['drinks/mocktails'], servings:4},
+      // ── NEW: 3-Week Meal Plan recipes ──
+      // Breakfasts
+      {id:'eating-out-brunch', name:'Eating Out Brunch', category:'Breakfast', url:'', ingredients:[], steps:[], nutrition:{kcal:500,protein:25,carbs:40,fat:22,fiber:4}, tags:['eating-out'], servings:2},
+      {id:'egg-bhurji-dill-toast', name:'Desi Egg Bhurji Dill Toast', category:'Breakfast', url:'', ingredients:['4 eggs','1 capsicum diced','2 tomatoes chopped','Fresh dill','1 tsp cumin','Salt & pepper','2 slices toast'], steps:['Whisk eggs lightly','Sauté capsicum and tomato with cumin','Add eggs, scramble soft','Fold in dill, serve on toast'], nutrition:{kcal:400,protein:26,carbs:32,fat:20,fiber:4}, tags:['eggs','bhurji','toast'], servings:2},
+      {id:'egg-mushroom-scramble-toast', name:'Egg Mushroom Scramble Toast', category:'Breakfast', url:'', ingredients:['4 eggs','200g mushrooms sliced','Fresh dill','1 tsp butter','2 slices toast','Tomato & cucumber'], steps:['Sauté mushrooms in butter until golden','Add whisked eggs, scramble gently','Fold in dill','Serve on toast with tomato & cucumber'], nutrition:{kcal:390,protein:28,carbs:28,fat:18,fiber:3}, tags:['eggs','mushroom','scramble'], servings:2},
+      {id:'spinach-egg-muffins', name:'Spinach Egg Muffins', category:'Breakfast', url:'', ingredients:['6 eggs','2 cups spinach chopped','1 onion diced','Salt & pepper','Pinch nutmeg'], steps:['Preheat oven 180°C','Sauté onion and spinach','Whisk eggs, mix with spinach','Pour into muffin tray','Bake 18-20 min'], nutrition:{kcal:350,protein:28,carbs:16,fat:20,fiber:3}, tags:['eggs','muffins','spinach'], servings:2},
+      {id:'avocado-toast-poached-eggs', name:'Avocado Toast Poached Eggs', category:'Breakfast', url:'', ingredients:['2 slices seeded bread','1 ripe avocado','4 eggs','Lemon juice','Chilli flakes','Tomato & cucumber'], steps:['Toast bread','Mash avocado with lemon, salt, chilli','Poach eggs in simmering water 3 min','Top toast with avocado and eggs'], nutrition:{kcal:420,protein:22,carbs:30,fat:26,fiber:7}, tags:['avocado','toast','poached-eggs'], servings:2},
+      {id:'masala-omelette-toast', name:'Masala Omelette Seeded Toast', category:'Breakfast', url:'', ingredients:['4 eggs','1 onion diced','1 green chilli','Coriander leaves','1 tsp cumin','2 slices seeded toast'], steps:['Whisk eggs with onion, chilli, coriander, cumin','Cook as omelette on medium heat','Serve with seeded toast, cucumber & carrot'], nutrition:{kcal:400,protein:28,carbs:26,fat:22,fiber:4}, tags:['omelette','masala','toast'], servings:2},
+      {id:'creamy-scrambled-eggs-beet-mushroom', name:'Creamy Scrambled Eggs Beet Leaves Mushrooms Toast', category:'Breakfast', url:'', ingredients:['4 eggs','1 tbsp cream','Beetroot leaves','200g mushrooms','2 slices seeded toast','Butter'], steps:['Sauté mushrooms and beet leaves in butter','Whisk eggs with cream','Scramble gently over low heat','Serve on toast'], nutrition:{kcal:410,protein:26,carbs:28,fat:22,fiber:5}, tags:['eggs','scramble','mushrooms','beet-leaves'], servings:2},
+      // Lunches
+      {id:'thai-green-veg-curry-rice', name:'Thai Green Veg Curry Jasmine Rice', category:'Fancy Meals', url:'', ingredients:['Green curry paste','400ml coconut milk','Mixed veg (broccoli, beans, capsicum, baby corn)','Thai basil','Jasmine rice'], steps:['Cook jasmine rice','Sauté curry paste 1 min','Add coconut milk, simmer','Add vegetables, cook 8 min','Stir in basil, serve over rice'], nutrition:{kcal:520,protein:14,carbs:68,fat:20,fiber:6}, tags:['thai','curry','rice'], servings:2},
+      {id:'smoky-baingan-chana-bharta', name:'Smoky Baingan Chana Bharta Quinoa', category:'Gravies & Curries', url:'', ingredients:['2 large eggplants','1 cup chana','Onion-tomato masala','Cumin, coriander, garam masala','Quinoa'], steps:['Roast eggplants over flame until charred','Peel and mash','Sauté masala base, add chana and mashed baingan','Season and simmer','Serve with quinoa and steamed broccoli'], nutrition:{kcal:440,protein:20,carbs:52,fat:14,fiber:12}, tags:['baingan','chana','bharta'], servings:2},
+      {id:'kerala-veg-stew-rice', name:'Kerala Vegetable Stew Rice', category:'Gravies & Curries', url:'', ingredients:['Potatoes, carrots, beans, peas','400ml coconut milk','Whole spices (cardamom, cloves, cinnamon)','Curry leaves','Green chillies','Rice'], steps:['Temper whole spices and curry leaves','Add vegetables, cook 5 min','Pour coconut milk, simmer until veggies tender','Season and serve with rice'], nutrition:{kcal:480,protein:12,carbs:62,fat:20,fiber:8}, tags:['kerala','stew','coconut'], servings:2},
+      {id:'quinoa-amaranth-khichdi', name:'Quinoa Amaranth Khichdi', category:'Fancy Meals', url:'', ingredients:['1 cup quinoa','1/4 cup amaranth','1/2 cup moong dal','Cumin, turmeric, hing','Ghee','Mixed veg'], steps:['Wash quinoa, amaranth, dal','Pressure cook with spices 3 whistles','Temper with ghee, cumin, hing','Serve with roasted beetroot and sautéed zucchini'], nutrition:{kcal:400,protein:18,carbs:52,fat:12,fiber:10}, tags:['quinoa','amaranth','khichdi'], servings:2},
+      {id:'quinoa-moong-khichdi', name:'Quinoa Moong Dal Khichdi', category:'Fancy Meals', url:'', ingredients:['1 cup quinoa','1/2 cup moong dal','Cumin, turmeric, ginger','Ghee','Roasted pumpkin','Spinach'], steps:['Wash quinoa and dal','Pressure cook with spices','Temper with ghee','Serve with roasted pumpkin and sautéed spinach'], nutrition:{kcal:410,protein:20,carbs:54,fat:10,fiber:10}, tags:['quinoa','moong','khichdi'], servings:2},
+      {id:'paneer-tofu-kofta-curry', name:'Paneer Tofu Kofta Curry Brown Rice', category:'Gravies & Curries', url:'', ingredients:['200g paneer grated','200g tofu','Onion-tomato gravy','Cashew paste','Spices','Brown rice'], steps:['Mash paneer and tofu, form koftas','Shallow fry koftas','Make onion-tomato gravy with cashew paste','Add koftas to gravy','Serve with brown rice'], nutrition:{kcal:520,protein:28,carbs:52,fat:22,fiber:6}, tags:['paneer','tofu','kofta'], servings:2},
+      {id:'stuffed-capsicum-curry-rice', name:'Stuffed Capsicum Curry Brown Rice', category:'Gravies & Curries', url:'', ingredients:['4 capsicums','Paneer-pea stuffing','Onion-tomato gravy','Garam masala','Brown rice'], steps:['Hollow capsicums','Stuff with paneer-pea mixture','Make gravy base','Place stuffed capsicums in gravy, simmer 15 min','Serve with brown rice and steamed broccoli'], nutrition:{kcal:460,protein:18,carbs:56,fat:16,fiber:8}, tags:['stuffed','capsicum','curry'], servings:2},
+      {id:'paneer-do-pyaza-roti', name:'Paneer Do Pyaza Roti', category:'Gravies & Curries', url:'', ingredients:['300g paneer cubed','3 large onions','Tomato puree','Ginger-garlic paste','Garam masala, cumin','Roti'], steps:['Sauté half the onions until golden','Add GG paste, tomato, spices','Cook until oil separates','Add paneer and remaining onion rings','Simmer 5 min, serve with roti'], nutrition:{kcal:480,protein:24,carbs:42,fat:22,fiber:6}, tags:['paneer','do-pyaza'], servings:2},
+      {id:'pav-bhaji-khichdi', name:'Pav Bhaji Khichdi', category:'Fancy Meals', url:'', ingredients:['1 cup rice','1/2 cup moong dal','Pav bhaji masala','Mixed veg (potato, peas, capsicum, cauliflower)','Butter','Onion, lemon'], steps:['Pressure cook rice and dal','Mash vegetables with pav bhaji masala','Mix into khichdi','Top with butter','Serve with sliced onion and lemon'], nutrition:{kcal:560,protein:18,carbs:68,fat:24,fiber:8}, tags:['pav-bhaji','khichdi','comfort'], servings:2},
+      {id:'cheesy-toasties-tomato-soup', name:'Cheesy Toasties Tomato Soup Salad', category:'Fancy Meals', url:'', ingredients:['Bread slices','Cheese (cheddar, mozzarella)','4 fillings of choice','Tomato soup','Side salad'], steps:['Make 4 different toasties','Prepare tomato soup dip','Toss a side salad','Serve together — comfort night!'], nutrition:{kcal:540,protein:22,carbs:48,fat:28,fiber:6}, tags:['toasties','cheese','comfort'], servings:2},
+      // Evening salad bowls
+      {id:'quinoa-beetroot-kale-bowl', name:'Quinoa Beetroot Kale Bowl', category:'Salads', url:'', ingredients:['1 cup cooked quinoa','Roasted beetroot','Kale torn','Cucumber','Cherry tomatoes','Lemon-tahini dressing'], steps:['Roast beetroot cubes 25 min','Massage kale with olive oil','Assemble bowl: quinoa, beet, kale, cucumber, tomatoes','Drizzle dressing'], nutrition:{kcal:380,protein:16,carbs:48,fat:12,fiber:10}, tags:['quinoa','beetroot','kale','bowl'], servings:2},
+      {id:'romaine-sweet-potato-tofu-bowl', name:'Romaine Sweet Potato Tofu Edamame Bowl', category:'Salads', url:'', ingredients:['Romaine lettuce','Roasted sweet potato','Golden tofu cubes','Edamame','Sesame dressing'], steps:['Roast sweet potato cubes','Pan-fry tofu until golden','Steam edamame','Assemble on romaine, drizzle dressing'], nutrition:{kcal:400,protein:22,carbs:40,fat:16,fiber:8}, tags:['romaine','sweet-potato','tofu','edamame'], servings:2},
+      {id:'kale-chickpea-avocado-sweet-potato-bowl', name:'Kale Chickpea Avocado Sweet Potato Bowl', category:'Salads', url:'', ingredients:['Kale','Roasted sweet potato','Chickpeas','Avocado','Pumpkin seeds','Lemon dressing'], steps:['Roast sweet potato and chickpeas','Massage kale','Slice avocado','Assemble bowl, top with seeds and dressing'], nutrition:{kcal:420,protein:18,carbs:44,fat:20,fiber:12}, tags:['kale','chickpea','avocado','sweet-potato'], servings:2},
+      {id:'paneer-lababdar-roti', name:'Paneer Lababdar Roti Kachumber', category:'Fancy Meals', url:'', ingredients:['300g paneer','Cashew-tomato gravy','Cream','Kasuri methi','Enriched roti','Kachumber salad'], steps:['Soak cashews, blend with tomato','Cook gravy base with spices','Add paneer cubes','Finish with cream and kasuri methi','Serve with roti and kachumber'], nutrition:{kcal:580,protein:28,carbs:48,fat:30,fiber:6}, tags:['paneer','lababdar','comfort'], servings:2},
+      // Kids fruit snacks
+      {id:'banana-pancakes-kids', name:'Banana Pancakes', category:'Sweets & Snacks', url:'', ingredients:['2 ripe bananas','2 eggs','1/4 cup oat flour','1/2 tsp cinnamon'], steps:['Mash bananas','Whisk in eggs and oat flour','Cook small pancakes on griddle','Serve warm'], nutrition:{kcal:180,protein:8,carbs:24,fat:6,fiber:2}, tags:['banana','pancakes','kids'], servings:2},
+      {id:'fruit-clementine', name:'Clementine', category:'Sweets & Snacks', url:'', ingredients:['2 clementines'], steps:['Peel and serve'], nutrition:{kcal:50,protein:1,carbs:12,fat:0,fiber:2}, tags:['fruit','kids'], servings:1},
+      {id:'fruit-apple', name:'Apple Slices', category:'Sweets & Snacks', url:'', ingredients:['1 apple'], steps:['Wash, core, slice'], nutrition:{kcal:60,protein:0,carbs:15,fat:0,fiber:3}, tags:['fruit','kids'], servings:1},
+      {id:'fruit-banana', name:'Banana', category:'Sweets & Snacks', url:'', ingredients:['1 banana'], steps:['Peel and serve'], nutrition:{kcal:90,protein:1,carbs:23,fat:0,fiber:3}, tags:['fruit','kids'], servings:1},
+      {id:'fruit-raspberries', name:'Raspberries', category:'Sweets & Snacks', url:'', ingredients:['1 cup raspberries'], steps:['Wash and serve'], nutrition:{kcal:50,protein:1,carbs:12,fat:0,fiber:6}, tags:['fruit','kids'], servings:1},
+      {id:'fruit-blackberries', name:'Blackberries', category:'Sweets & Snacks', url:'', ingredients:['1 cup blackberries'], steps:['Wash and serve'], nutrition:{kcal:50,protein:1,carbs:10,fat:0,fiber:5}, tags:['fruit','kids'], servings:1},
+      {id:'fruit-mango', name:'Mango Cubes', category:'Sweets & Snacks', url:'', ingredients:['1 mango'], steps:['Peel, cube, serve'], nutrition:{kcal:70,protein:1,carbs:18,fat:0,fiber:2}, tags:['fruit','kids'], servings:1},
+      {id:'fruit-blueberries', name:'Blueberries', category:'Sweets & Snacks', url:'', ingredients:['1 cup blueberries'], steps:['Wash and serve'], nutrition:{kcal:55,protein:1,carbs:14,fat:0,fiber:2}, tags:['fruit','kids'], servings:1},
+      {id:'fruit-pear', name:'Pear Slices', category:'Sweets & Snacks', url:'', ingredients:['1 pear'], steps:['Wash, core, slice'], nutrition:{kcal:60,protein:0,carbs:15,fat:0,fiber:3}, tags:['fruit','kids'], servings:1},
+      {id:'fruit-cherries', name:'Cherries', category:'Sweets & Snacks', url:'', ingredients:['1 cup cherries'], steps:['Wash and serve'], nutrition:{kcal:60,protein:1,carbs:15,fat:0,fiber:2}, tags:['fruit','kids'], servings:1},
+      {id:'fruit-strawberries', name:'Strawberries', category:'Sweets & Snacks', url:'', ingredients:['1 cup strawberries'], steps:['Wash, hull, serve'], nutrition:{kcal:50,protein:1,carbs:12,fat:0,fiber:3}, tags:['fruit','kids'], servings:1},
+      {id:'fruit-grapes', name:'Grapes', category:'Sweets & Snacks', url:'', ingredients:['1 cup grapes'], steps:['Wash and serve'], nutrition:{kcal:65,protein:1,carbs:17,fat:0,fiber:1}, tags:['fruit','kids'], servings:1},
+      {id:'fruit-pineapple', name:'Pineapple Chunks', category:'Sweets & Snacks', url:'', ingredients:['1 cup pineapple'], steps:['Peel, core, chunk'], nutrition:{kcal:55,protein:1,carbs:14,fat:0,fiber:2}, tags:['fruit','kids'], servings:1}
     ];
     const MEAL_TIMES = ['Breakfast 10AM', 'Kids Snack 11AM', 'Lunch 1:30PM', 'Snack 4PM', 'Dinner 7PM'];
     const DAYS = ['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
     const state = {
       currentWeek: 1, currentDay: 0, recipes: [...RECIPES],
-      mealPlan: { 1: { 0: ['idli-sambar', 'banana-pancakes', 'thai-green-curry', null, 'kale-quinoa-bowl'], 1: ['poha', null, 'masala-dosa', null, 'palak-dal'], 2: [null, null, null, null, null], 3: [null, null, null, null, null], 4: [null, null, null, null, null], 5: [null, null, null, null, null], 6: [null, null, null, null, null] }, 2: { 0: [null, null, null, null, null], 1: [null, null, null, null, null], 2: [null, null, null, null, null], 3: [null, null, null, null, null], 4: [null, null, null, null, null], 5: [null, null, null, null, null], 6: [null, null, null, null, null] }, 3: { 0: [null, null, null, null, null], 1: [null, null, null, null, null], 2: [null, null, null, null, null], 3: [null, null, null, null, null], 4: [null, null, null, null, null], 5: [null, null, null, null, null], 6: [null, null, null, null, null] } },
+      mealPlan: {
+        1: {
+          0: ['idli-sambhar', 'banana-pancakes-kids', 'thai-green-veg-curry-rice', 'fruit-clementine', 'quinoa-beetroot-kale-bowl'],
+          1: ['eating-out-brunch', 'fruit-clementine', 'dosa', 'fruit-apple', 'romaine-sweet-potato-tofu-bowl'],
+          2: ['frittata', 'fruit-clementine', 'rajma', 'fruit-raspberries', 'kale-chickpea-avocado-sweet-potato-bowl'],
+          3: ['besan-chilla', 'fruit-apple', 'smoky-baingan-chana-bharta', 'fruit-raspberries', 'avocado-salad'],
+          4: ['egg-bhurji-dill-toast', 'fruit-clementine', 'lobia', 'fruit-blackberries', 'feta-salad'],
+          5: ['moong-dal-palak-chilla', 'fruit-apple', 'kabuli-chole', 'fruit-blackberries', 'chole-salad'],
+          6: ['egg-mushroom-scramble-toast', 'fruit-banana', 'palak-methi-soya', 'fruit-clementine', 'paneer-lababdar-roti']
+        },
+        2: {
+          0: ['dosa', 'banana-pancakes-kids', 'quinoa-spinach-salad', 'fruit-blueberries', 'paneer-tofu-kofta-curry'],
+          1: ['eating-out-brunch', 'fruit-mango', 'dosa', 'fruit-banana', 'sprouts-salad'],
+          2: ['green-moong-chilla', 'fruit-blueberries', 'palak-daal', 'fruit-mango', 'romaine-sweet-potato-tofu-bowl'],
+          3: ['spinach-egg-muffins', 'fruit-mango', 'quinoa-amaranth-khichdi', 'fruit-cherries', 'avocado-salad'],
+          4: ['besan-chilla-2', 'fruit-pear', 'quinoa-moong-khichdi', 'fruit-blueberries', 'chole-salad'],
+          5: ['egg-bhurji-dill-toast', 'fruit-banana', 'lauki', 'fruit-cherries', 'feta-salad'],
+          6: ['avocado-toast-poached-eggs', 'fruit-pear', 'rajma', 'fruit-mango', 'pav-bhaji-khichdi']
+        },
+        3: {
+          0: ['poha', 'banana-pancakes-kids', 'kerala-veg-stew-rice', 'fruit-strawberries', 'feta-salad'],
+          1: ['eating-out-brunch', 'fruit-strawberries', 'dosa', 'fruit-grapes', 'creamy-broccoli-soup'],
+          2: ['namkin-daliya', 'fruit-banana', 'palak-daal', 'fruit-grapes', 'sprouts-salad'],
+          3: ['masala-omelette-toast', 'fruit-strawberries', 'paneer-do-pyaza-roti', 'fruit-raspberries', 'beetroot-greens-salad'],
+          4: ['paneer-bhurji', 'fruit-grapes', 'taroi', 'fruit-pineapple', 'chole-salad'],
+          5: ['ragi-roti', 'fruit-banana', 'stuffed-capsicum-curry-rice', 'fruit-pineapple', 'kale-with-hummus'],
+          6: ['creamy-scrambled-eggs-beet-mushroom', 'fruit-pineapple', 'palak-methi-soya', 'fruit-grapes', 'cheesy-toasties-tomato-soup']
+        }
+      },
       shoppingList: { 'Shop 1': [{ name: 'Broccoli', qty: 2, unit: 'heads', checked: false, badge: 'Produce' }, { name: 'Zucchini', qty: 2, unit: 'piece', checked: false, badge: 'Produce' }, { name: 'Bell pepper', qty: 3, unit: 'piece', checked: false, badge: 'Produce' }, { name: 'Kale', qty: 1, unit: 'bunch', checked: false, badge: 'Produce' }, { name: 'Spinach', qty: 300, unit: 'g', checked: false, badge: 'Produce' }, { name: 'Carrots', qty: 3, unit: 'piece', checked: false, badge: 'Produce' }, { name: 'Tomatoes', qty: 5, unit: 'piece', checked: false, badge: 'Produce' }, { name: 'Cucumber', qty: 3, unit: 'piece', checked: false, badge: 'Produce' }, { name: 'Onions', qty: 2, unit: 'kg', checked: false, badge: 'Produce' }, { name: 'Eggs', qty: 24, unit: 'piece', checked: false, badge: 'Dairy' }, { name: 'Yogurt', qty: 500, unit: 'g', checked: false, badge: 'Dairy' }, { name: 'Feta', qty: 200, unit: 'g', checked: false, badge: 'Dairy' } ], 'Shop 2': [{ name: 'Coconut milk', qty: 2, unit: 'cans', checked: false, badge: 'Groceries' }, { name: 'Green curry paste', qty: 1, unit: 'jar', checked: false, badge: 'Groceries' }, { name: 'Tamarind paste', qty: 200, unit: 'g', checked: false, badge: 'Groceries' } ], 'Dry Goods': [{ name: 'Rice', qty: 2, unit: 'kg', checked: false, badge: 'Grains' }, { name: 'Quinoa', qty: 500, unit: 'g', checked: false, badge: 'Grains' }, { name: 'Yellow dal', qty: 1, unit: 'kg', checked: false, badge: 'Legumes' }, { name: 'Urad dal', qty: 500, unit: 'g', checked: false, badge: 'Legumes' } ] },
       pantry: [{ name: 'Olive Oil', amount: 500, unit: 'ml', category: 'Oils', expiry: '2026-12-31' }, { name: 'Garlic', amount: 12, unit: 'cloves', category: 'Produce', expiry: '2026-05-01' }, { name: 'Rice', amount: 2, unit: 'kg', category: 'Grains', expiry: '2027-06-30' }, { name: 'Cumin', amount: 100, unit: 'g', category: 'Spices', expiry: '2027-03-15' }, { name: 'Turmeric', amount: 100, unit: 'g', category: 'Spices', expiry: '2027-02-20' }, { name: 'Mustard Seeds', amount: 100, unit: 'g', category: 'Spices', expiry: '2027-01-10' }, { name: 'Ghee', amount: 500, unit: 'ml', category: 'Oils', expiry: '2026-08-15' }, { name: 'Urad Dal', amount: 1, unit: 'kg', category: 'Legumes', expiry: '2027-04-30' } ],
       kitchenMode: { active: false, currentStep: 0, steps: [] }
@@ -646,20 +780,439 @@
       if (tabName === 'pantry') renderPantry();
       if (tabName === 'shopping') renderShopping();
     }
-    function setWeek(week) { state.currentWeek = week; document.querySelectorAll('.btn-selector').forEach((btn, idx) => { if (idx < 3) btn.classList.toggle('active', btn.textContent === `Week ${week}`); }); render(); }
-    function setDay(day) { state.currentDay = day; document.querySelectorAll('[data-day]').forEach(btn => { btn.classList.toggle('active', parseInt(btn.dataset.day) === day); }); render(); }
-    function render() { renderMealGrid(); renderPrepPanels(); updateProgress(); }
-    function renderMealGrid() {
-      const week = state.currentWeek, day = state.currentDay, meals = state.mealPlan[week][day];
-      const gridHtml = meals.map((recipeId, idx) => {
-        const recipe = recipeId ? getRecipeById(recipeId) : null, mealTime = MEAL_TIMES[idx];
-        return `<div class="meal-card" ondragover="highlightMealCard(event)" ondragleave="unhighlightMealCard(event)" ondrop="dropMeal(event, ${week}, ${day}, ${idx})"><div class="meal-time">${mealTime}</div><div class="meal-name">${recipe ? recipe.name : 'Empty'}</div>${recipe ? `<div class="meal-recipe">${recipe.name}</div><div class="meal-calories">${recipe.nutrition.kcal} kcal</div>` : '<div class="meal-empty">Drag recipe here</div>'}</div>`;
-      }).join('');
-      document.getElementById('meal-grid').innerHTML = gridHtml;
+    function setWeek(week) { state.currentWeek = week; document.querySelectorAll('.btn-selector').forEach((btn) => { btn.classList.toggle('active', btn.textContent === `Week ${week}`); }); render(); }
+    function setDay(day) { state.currentDay = day; }
+    function render() { renderWeekGrid(); renderPrepPanels(); updateProgress(); }
+    function renderWeekGrid() {
+      const week = state.currentWeek;
+      const SHORT_DAYS = ['Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+      const today = new Date().getDay(); // 0=Sun, 6=Sat
+      const todayIdx = today === 0 ? 1 : today === 6 ? 0 : today + 1; // map to our Sat-start index
+
+      // Header row
+      let html = '<div class="week-grid">';
+      html += '<div class="week-header" style="background:var(--color-mid-brown)"></div>';
+      for (let d = 0; d < 7; d++) {
+        const isToday = (d === todayIdx) ? ' today' : '';
+        html += `<div class="week-header${isToday}">${SHORT_DAYS[d]}</div>`;
+      }
+
+      // Meal rows
+      for (let m = 0; m < 5; m++) {
+        html += `<div class="week-time-label">${MEAL_TIMES[m]}</div>`;
+        for (let d = 0; d < 7; d++) {
+          const recipeId = state.mealPlan[week][d][m];
+          const recipe = recipeId ? getRecipeById(recipeId) : null;
+          html += `<div class="meal-cell" ondragover="highlightMealCard(event)" ondragleave="unhighlightMealCard(event)" ondrop="dropMeal(event, ${week}, ${d}, ${m})" onclick="openMealSearch(event, ${week}, ${d}, ${m})" data-w="${week}" data-d="${d}" data-m="${m}">`;
+          if (recipe) {
+            html += `<button class="meal-cell-clear" onclick="event.stopPropagation(); clearMeal(${week},${d},${m})" title="Remove">✕</button>`;
+            html += `<div class="meal-cell-name">${recipe.name}</div>`;
+            if (recipe.nutrition.kcal > 0) html += `<div class="meal-cell-kcal">${recipe.nutrition.kcal} kcal</div>`;
+          } else {
+            html += `<div class="meal-cell-empty">+ type to search</div>`;
+          }
+          html += '</div>';
+        }
+      }
+
+      // Totals row
+      html += '<div class="week-total-label">Total kcal</div>';
+      for (let d = 0; d < 7; d++) {
+        let dayKcal = 0;
+        state.mealPlan[week][d].forEach(rid => {
+          if (rid) { const r = getRecipeById(rid); if (r) dayKcal += r.nutrition.kcal; }
+        });
+        html += `<div class="week-day-total">${dayKcal > 0 ? dayKcal : '—'}</div>`;
+      }
+
+      html += '</div>';
+      document.getElementById('week-grid-container').innerHTML = html;
     }
     function highlightMealCard(e) { e.preventDefault(); e.currentTarget.classList.add('drop-target'); }
     function unhighlightMealCard(e) { e.currentTarget.classList.remove('drop-target'); }
-    function dropMeal(e, week, day, mealIdx) { e.preventDefault(); e.currentTarget.classList.remove('drop-target'); const recipeId = e.dataTransfer.getData('text/plain'); if (state.recipes.find(r => r.id === recipeId)) { state.mealPlan[week][day][mealIdx] = recipeId; render(); } }
+    function dropMeal(e, week, day, mealIdx) { e.preventDefault(); e.currentTarget.classList.remove('drop-target'); const recipeId = e.dataTransfer.getData('text/plain'); if (state.recipes.find(r => r.id === recipeId)) { state.mealPlan[week][day][mealIdx] = recipeId; render(); autoSave(); } }
+    function clearMeal(week, day, mealIdx) { state.mealPlan[week][day][mealIdx] = null; render(); autoSave(); }
+
+    // ╔═══════════════════════════════════════════════════════════════╗
+    // ║  TYPE-TO-SEARCH: inline autocomplete in meal cells           ║
+    // ╚═══════════════════════════════════════════════════════════════╝
+
+    let activeMealSearch = null; // { week, day, mealIdx, el }
+
+    function openMealSearch(e, week, day, mealIdx) {
+      // Don't open if clicking the clear button
+      if (e.target.classList.contains('meal-cell-clear')) return;
+      // Don't re-open if already active on this cell
+      if (activeMealSearch && activeMealSearch.week === week && activeMealSearch.day === day && activeMealSearch.mealIdx === mealIdx) return;
+
+      closeMealSearch();
+      const cell = e.currentTarget;
+      activeMealSearch = { week, day, mealIdx, el: cell };
+
+      // Replace cell content with search input + dropdown
+      const existingRecipeId = state.mealPlan[week][day][mealIdx];
+      const existingRecipe = existingRecipeId ? getRecipeById(existingRecipeId) : null;
+
+      cell.innerHTML = `<div class="meal-cell-search">
+        <input class="meal-cell-input" type="text" placeholder="Type recipe name..." value="${existingRecipe ? existingRecipe.name : ''}" autocomplete="off" spellcheck="false">
+        <div class="meal-suggest"></div>
+      </div>`;
+
+      const input = cell.querySelector('.meal-cell-input');
+      const dropdown = cell.querySelector('.meal-suggest');
+
+      input.focus();
+      input.select();
+
+      // Show initial suggestions
+      updateMealSuggestions(input.value, dropdown, week, day, mealIdx);
+
+      let activeIdx = -1;
+
+      input.addEventListener('input', () => {
+        activeIdx = -1;
+        updateMealSuggestions(input.value, dropdown, week, day, mealIdx);
+      });
+
+      input.addEventListener('keydown', (ev) => {
+        const items = dropdown.querySelectorAll('.meal-suggest-item');
+        if (ev.key === 'ArrowDown') {
+          ev.preventDefault();
+          activeIdx = Math.min(activeIdx + 1, items.length - 1);
+          items.forEach((it, i) => it.classList.toggle('active', i === activeIdx));
+          if (items[activeIdx]) items[activeIdx].scrollIntoView({ block: 'nearest' });
+        } else if (ev.key === 'ArrowUp') {
+          ev.preventDefault();
+          activeIdx = Math.max(activeIdx - 1, 0);
+          items.forEach((it, i) => it.classList.toggle('active', i === activeIdx));
+          if (items[activeIdx]) items[activeIdx].scrollIntoView({ block: 'nearest' });
+        } else if (ev.key === 'Enter') {
+          ev.preventDefault();
+          if (activeIdx >= 0 && items[activeIdx]) {
+            selectMealSuggestion(items[activeIdx].dataset.id, week, day, mealIdx);
+          } else if (items.length > 0) {
+            selectMealSuggestion(items[0].dataset.id, week, day, mealIdx);
+          }
+        } else if (ev.key === 'Escape') {
+          closeMealSearch();
+          renderWeekGrid();
+        }
+      });
+
+      // Close on outside click (deferred to avoid immediate trigger)
+      setTimeout(() => {
+        document.addEventListener('click', closeMealSearchOutside);
+      }, 10);
+    }
+
+    function updateMealSuggestions(query, dropdown, week, day, mealIdx) {
+      const q = query.trim().toLowerCase();
+      let matches;
+      if (q.length === 0) {
+        // Show popular/all recipes grouped loosely, limit to 12
+        matches = state.recipes.slice(0, 12);
+      } else {
+        // Score-based fuzzy match
+        matches = state.recipes
+          .map(r => {
+            const name = r.name.toLowerCase();
+            const cat = r.category.toLowerCase();
+            let score = 0;
+            if (name === q) score = 100;
+            else if (name.startsWith(q)) score = 80;
+            else if (name.includes(q)) score = 60;
+            else if (cat.includes(q)) score = 30;
+            else {
+              // Check individual words
+              const words = q.split(/\s+/);
+              const matched = words.filter(w => name.includes(w) || cat.includes(w));
+              score = matched.length > 0 ? (matched.length / words.length) * 50 : 0;
+            }
+            return { recipe: r, score };
+          })
+          .filter(x => x.score > 0)
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 10)
+          .map(x => x.recipe);
+      }
+
+      if (matches.length === 0) {
+        dropdown.innerHTML = '<div class="meal-suggest-empty">No recipes found</div>';
+      } else {
+        dropdown.innerHTML = matches.map(r =>
+          `<div class="meal-suggest-item" data-id="${r.id}" onmousedown="selectMealSuggestion('${r.id}', ${week}, ${day}, ${mealIdx})">
+            <span class="meal-suggest-name">${highlightMatch(r.name, q)}</span>
+            <span class="meal-suggest-cat">${r.category}</span>
+          </div>`
+        ).join('');
+      }
+      dropdown.style.display = 'block';
+    }
+
+    function highlightMatch(name, query) {
+      if (!query) return name;
+      const idx = name.toLowerCase().indexOf(query);
+      if (idx === -1) return name;
+      return name.substring(0, idx) + '<strong style="color:var(--color-saffron)">' + name.substring(idx, idx + query.length) + '</strong>' + name.substring(idx + query.length);
+    }
+
+    function selectMealSuggestion(recipeId, week, day, mealIdx) {
+      state.mealPlan[week][day][mealIdx] = recipeId;
+      closeMealSearch();
+      render();
+      autoSave();
+    }
+
+    function closeMealSearch() {
+      activeMealSearch = null;
+      document.removeEventListener('click', closeMealSearchOutside);
+    }
+
+    function closeMealSearchOutside(e) {
+      if (activeMealSearch && activeMealSearch.el && !activeMealSearch.el.contains(e.target)) {
+        closeMealSearch();
+        renderWeekGrid();
+      }
+    }
+
+    function clearWeek() {
+      const week = state.currentWeek;
+      for (let d = 0; d < 7; d++) state.mealPlan[week][d] = [null, null, null, null, null];
+      render(); autoSave();
+    }
+
+    // ╔═══════════════════════════════════════════════════════════════╗
+    // ║  MEAL PLAN TENETS & SMART GENERATOR                         ║
+    // ╚═══════════════════════════════════════════════════════════════╝
+
+    const DEFAULT_TENETS = {
+      family: {
+        label: 'Family Profile',
+        rules: [
+          { id: 'family-size', text: 'Family of 4: 2 adults, 1 child (8yr), 1 toddler (1.5yr)', on: true },
+          { id: 'vegetarian', text: 'Vegetarian Indian. Eggs, paneer, dairy included. No meat, fish, seafood.', on: true },
+          { id: 'fasting', text: 'Adult eating window: 16-hr fast — eat only 10 AM–6 PM', on: true },
+          { id: 'calories', text: 'Adult calorie target: ~1,500 kcal/day', on: true, editable: 'kcal', value: 1500 },
+          { id: 'protein', text: 'Adult protein target: 100–120g/day (excluding whey)', on: true, editable: 'g', value: 110 },
+          { id: 'hypothyroid', text: 'One adult hypothyroid: no soy at breakfast, cruciferous always cooked, 1–2 Brazil nuts daily (Mon breakfast)', on: true },
+          { id: 'daily-nuts', text: 'Every breakfast includes: 5 almonds + 1 walnut + 1 dried fig', on: true }
+        ]
+      },
+      structure: {
+        label: 'Meal Structure',
+        rules: [
+          { id: 'slot-breakfast', text: 'Breakfast (10 AM): Egg dish / dosa / chilla / idli + sambar + greens', on: true },
+          { id: 'slot-kids-am', text: 'Kids AM Snack (11 AM): Fruit or banana pancakes (Sat)', on: true },
+          { id: 'slot-lunch', text: 'Lunch (1:30 PM): Main curry/dal + grain (rice/quinoa/roti) + side veg', on: true },
+          { id: 'slot-kids-pm', text: 'Kids PM Snack (5 PM): Seasonal fruit', on: true },
+          { id: 'slot-evening', text: 'Evening (5:30 PM): Salad bowl + smoothie OR comfort meal on Fridays', on: true }
+        ]
+      },
+      week: {
+        label: 'Weekly Rules',
+        rules: [
+          { id: 'week-sat-fri', text: 'Week runs Saturday → Friday', on: true },
+          { id: 'sunday-eatout', text: 'Sunday breakfast: Eating Out (omelette/poached eggs + veg side)', on: true },
+          { id: 'friday-comfort', text: 'Friday evening = Comfort Night (special indulgent dish, kids get pasta or simpler version)', on: true },
+          { id: 'saturday-pancakes', text: 'Saturday kids AM snack = Banana Pancakes', on: true },
+          { id: 'no-repeats', text: 'No recipe repeats within the same week', on: true },
+          { id: 'variety', text: 'Vary protein sources across the week (eggs, paneer, legumes, tofu)', on: true }
+        ]
+      },
+      cooking: {
+        label: 'Cooking & Prep Schedule',
+        rules: [
+          { id: 'fri-soak', text: 'Friday evening: Shop + 10-min soak prep (grains, rajma, batter)', on: true },
+          { id: 'sat-bigcook', text: 'Saturday morning: Big batch cook (~2 hrs). Zero-cook days: Sun/Mon/Wed/Fri.', on: true },
+          { id: 'tue-topup', text: 'Tuesday: Top-up shop + 90–120 min cook', on: true },
+          { id: 'thu-cook', text: 'Thursday: 90–120 min cook + Friday comfort night prep', on: true },
+          { id: 'tadka-fresh', text: 'Never add tadka to batch — add fresh per serving (ghee + mustard + curry leaves)', on: true },
+          { id: 'nooch-timing', text: 'Nutritional yeast: add ONLY after fermentation, just before cooking', on: true }
+        ]
+      },
+      composition: {
+        label: 'Meal Composition',
+        rules: [
+          { id: 'breakfast-eggs', text: 'Breakfast always includes 2 eggs per adult (boiled, scrambled, bhurji, frittata, or omelette)', on: true },
+          { id: 'breakfast-seeds', text: 'Breakfast includes hemp seeds or seed powder (pumpkin/sunflower/flaxseed)', on: true },
+          { id: 'lunch-dal', text: 'Lunch includes a dal or legume dish at least 5 days/week', on: true },
+          { id: 'lunch-grain', text: 'Lunch includes a grain base (rice, quinoa, or roti)', on: true },
+          { id: 'evening-salad', text: 'Evening is a salad/bowl: leafy greens + roasted veg + protein + seeds + dressing', on: true },
+          { id: 'evening-smoothie', text: 'Evening includes a smoothie (whey + fruit + greens + seeds)', on: true },
+          { id: 'chai', text: 'Adults: masala chai at 4:30 PM (~80–100 kcal)', on: true }
+        ]
+      },
+      comfort: {
+        label: 'Friday Comfort Nights',
+        rules: [
+          { id: 'comfort-w1', text: 'Week 1: Paneer Lababdar + enriched roti + kachumber', on: true },
+          { id: 'comfort-w2', text: 'Week 2: Pav Bhaji Khichdi + butter + sliced onion + lemon', on: true },
+          { id: 'comfort-w3', text: 'Week 3: Cheesy Toasties 4 ways + tomato soup dip + side salad', on: true }
+        ]
+      }
+    };
+
+    function getTenets() {
+      try {
+        const saved = localStorage.getItem('prepwise_tenets');
+        if (saved) return JSON.parse(saved);
+      } catch(e) {}
+      return JSON.parse(JSON.stringify(DEFAULT_TENETS));
+    }
+
+    function saveTenets(tenets) {
+      localStorage.setItem('prepwise_tenets', JSON.stringify(tenets));
+    }
+
+    function generateMealPlan() {
+      // Open tenets modal
+      const tenets = getTenets();
+      let html = '';
+      Object.entries(tenets).forEach(([section, data]) => {
+        html += `<div class="tenet-section"><h3>${data.label}</h3>`;
+        data.rules.forEach((rule, idx) => {
+          html += `<div class="tenet-row">`;
+          html += `<input type="checkbox" class="tenet-toggle" data-section="${section}" data-idx="${idx}" ${rule.on ? 'checked' : ''}>`;
+          html += `<div class="tenet-label">${rule.text}`;
+          if (rule.editable) {
+            html += ` <input type="number" class="tenet-input" data-section="${section}" data-idx="${idx}" data-field="value" value="${rule.value}"> ${rule.editable}`;
+          }
+          html += `</div></div>`;
+        });
+        html += '</div>';
+      });
+      html += `<div class="tenet-section"><h3>Custom Rules</h3>`;
+      html += `<textarea class="tenet-textarea" id="custom-tenets" placeholder="Add any extra rules here (one per line)...&#10;e.g., No paneer on Mondays&#10;Include soup at least twice a week">${tenets.customRules || ''}</textarea></div>`;
+      document.getElementById('tenets-body').innerHTML = html;
+      document.getElementById('tenets-overlay').classList.add('active');
+    }
+
+    function closeTenets() {
+      document.getElementById('tenets-overlay').classList.remove('active');
+    }
+
+    function readTenetsFromModal() {
+      const tenets = getTenets();
+      document.querySelectorAll('.tenet-toggle').forEach(cb => {
+        const section = cb.dataset.section, idx = parseInt(cb.dataset.idx);
+        if (tenets[section] && tenets[section].rules[idx]) {
+          tenets[section].rules[idx].on = cb.checked;
+        }
+      });
+      document.querySelectorAll('.tenet-input').forEach(inp => {
+        const section = inp.dataset.section, idx = parseInt(inp.dataset.idx);
+        if (tenets[section] && tenets[section].rules[idx]) {
+          tenets[section].rules[idx].value = parseInt(inp.value) || 0;
+        }
+      });
+      const customEl = document.getElementById('custom-tenets');
+      if (customEl) tenets.customRules = customEl.value;
+      saveTenets(tenets);
+      return tenets;
+    }
+
+    function isRuleOn(tenets, ruleId) {
+      for (const section of Object.values(tenets)) {
+        if (!section.rules) continue;
+        const rule = section.rules.find(r => r.id === ruleId);
+        if (rule) return rule.on;
+      }
+      return false;
+    }
+
+    function generateFromTenets() {
+      const tenets = readTenetsFromModal();
+      const week = state.currentWeek;
+
+      // Build category pools
+      const breakfasts = state.recipes.filter(r => r.category === 'Breakfast');
+      const curries = state.recipes.filter(r => ['Gravies & Curries', 'Dry Vegetables', 'Dal Specialties', 'Fancy Meals'].includes(r.category));
+      const dals = state.recipes.filter(r => ['Dals & Breads', 'Dal Specialties'].includes(r.category));
+      const eggs = state.recipes.filter(r => r.category === 'Eggs');
+      const salads = state.recipes.filter(r => r.category === 'Salads');
+      const soups = state.recipes.filter(r => r.category === 'Soups');
+      const snacks = state.recipes.filter(r => ['Sweets & Snacks', 'Starters', 'Sandwiches & Wraps', 'Drinks'].includes(r.category));
+      const sides = state.recipes.filter(r => ['Raita & Sides', 'Chutneys'].includes(r.category));
+
+      const used = new Set();
+      function pick(arr) {
+        const avail = isRuleOn(tenets, 'no-repeats') ? arr.filter(r => !used.has(r.id)) : arr;
+        if (avail.length === 0) return arr.length > 0 ? arr[Math.floor(Math.random() * arr.length)] : null;
+        const r = avail[Math.floor(Math.random() * avail.length)];
+        used.add(r.id);
+        return r;
+      }
+
+      for (let d = 0; d < 7; d++) {
+        const dayName = DAYS[d]; // Saturday=0, Sunday=1, ...Friday=6
+
+        // SLOT 0: Breakfast (10 AM)
+        if (d === 1 && isRuleOn(tenets, 'sunday-eatout')) {
+          // Sunday eating out - find or use placeholder
+          const eatout = state.recipes.find(r => r.name.toLowerCase().includes('eat')) || pick(breakfasts.length > 0 ? breakfasts : state.recipes);
+          state.mealPlan[week][d][0] = eatout ? eatout.id : null;
+        } else {
+          const pool = breakfasts.length > 0 ? breakfasts : state.recipes;
+          const b = pick(pool);
+          state.mealPlan[week][d][0] = b ? b.id : null;
+        }
+
+        // SLOT 1: Kids AM Snack (11 AM)
+        if (d === 0 && isRuleOn(tenets, 'saturday-pancakes')) {
+          const pancake = state.recipes.find(r => r.name.toLowerCase().includes('pancake'));
+          state.mealPlan[week][d][1] = pancake ? pancake.id : (pick(snacks) || {}).id || null;
+        } else {
+          // Fruit snack - use snack/side items
+          const s = pick(snacks.length > 0 ? snacks : sides.length > 0 ? sides : state.recipes);
+          state.mealPlan[week][d][1] = s ? s.id : null;
+        }
+
+        // SLOT 2: Lunch (1:30 PM) — main curry/dal + implied grain
+        if (isRuleOn(tenets, 'lunch-dal') && d % 2 === 0 && dals.length > 0) {
+          const dal = pick(dals);
+          state.mealPlan[week][d][2] = dal ? dal.id : null;
+        } else {
+          const main = pick(curries.length > 0 ? curries : state.recipes);
+          state.mealPlan[week][d][2] = main ? main.id : null;
+        }
+
+        // SLOT 3: Kids PM Snack / Afternoon (5 PM)
+        if (isRuleOn(tenets, 'evening-salad') && salads.length > 0) {
+          // Use salad for evening concept, put soup/light item here
+          const light = pick(soups.length > 0 ? soups : salads);
+          state.mealPlan[week][d][3] = light ? light.id : null;
+        } else {
+          const s = pick(snacks.length > 0 ? snacks : state.recipes);
+          state.mealPlan[week][d][3] = s ? s.id : null;
+        }
+
+        // SLOT 4: Evening/Dinner (5:30 PM / 7 PM)
+        if (d === 6 && isRuleOn(tenets, 'friday-comfort')) {
+          // Friday comfort night
+          const comfortKey = 'comfort-w' + week;
+          const comfortRule = tenets.comfort.rules.find(r => r.id === comfortKey);
+          if (comfortRule && comfortRule.on) {
+            // Try to find matching recipe
+            const comfortName = comfortRule.text.split(':')[1]?.trim().split('+')[0]?.trim().toLowerCase() || '';
+            const comfortRecipe = state.recipes.find(r => r.name.toLowerCase().includes(comfortName.substring(0, 8)));
+            state.mealPlan[week][d][4] = comfortRecipe ? comfortRecipe.id : (pick(curries.length > 0 ? curries : state.recipes) || {}).id || null;
+          } else {
+            const dn = pick(curries.length > 0 ? curries : state.recipes);
+            state.mealPlan[week][d][4] = dn ? dn.id : null;
+          }
+        } else if (isRuleOn(tenets, 'evening-salad') && salads.length > 0) {
+          const sal = pick(salads);
+          state.mealPlan[week][d][4] = sal ? sal.id : null;
+        } else {
+          const dn = pick(curries.length > 0 ? curries : state.recipes);
+          state.mealPlan[week][d][4] = dn ? dn.id : null;
+        }
+      }
+
+      closeTenets();
+      render();
+      autoSave();
+    }
     function renderPrepPanels() {
       const morningSteps = ['Heat griddle for dosa', 'Boil water for sambar', 'Set table and utensils', 'Squeeze orange juice', 'Set out snack containers'];
       const eveningSteps = ['Wash and prep tomorrow vegetables', 'Soak beans/grains if needed', 'Check pantry for tomorrow', 'Clean kitchen thoroughly', 'Plan breakfast next day'];
@@ -667,7 +1220,12 @@
       document.getElementById('morning-prep-steps').innerHTML = renderSteps(morningSteps);
       document.getElementById('evening-prep-steps').innerHTML = renderSteps(eveningSteps);
     }
-    function updateProgress() { const meals = state.mealPlan[state.currentWeek][state.currentDay], mealsCount = meals.filter(m => m !== null).length; document.getElementById('meals-count').textContent = mealsCount; const allChecked = document.querySelectorAll('.prep-step input[type="checkbox"]:checked').length; document.getElementById('prep-done-count').textContent = allChecked; }
+    function updateProgress() {
+      let totalMeals = 0;
+      const weekData = state.mealPlan[state.currentWeek];
+      for (let d = 0; d < 7; d++) { totalMeals += weekData[d].filter(m => m !== null).length; }
+      document.getElementById('meals-count').textContent = totalMeals;
+    }
     function renderRecipeBook() {
       const searchTerm = (document.getElementById('recipe-search').value || '').toLowerCase();
       const filterCat = document.getElementById('recipe-category-filter').value;
