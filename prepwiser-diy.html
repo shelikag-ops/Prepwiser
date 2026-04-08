@@ -1,0 +1,1243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PrepWise DIY - Family Meal Prep Planner</title>
+  <!-- Google Identity Services for OAuth2 (needed for Sheets write access) -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    :root {
+      --color-saffron: #E8820C;
+      --color-cream: #FDF8F2;
+      --color-deep-brown: #1A1208;
+      --color-mid-brown: #3D2B1A;
+      --color-green: #2D6A4F;
+      --color-red: #C0392B;
+      --color-border: #D4AF9A;
+      --color-shadow: rgba(26, 18, 8, 0.08);
+      --color-hover-shadow: rgba(26, 18, 8, 0.15);
+      --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --border-radius: 12px;
+      --border-radius-sm: 8px;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { width: 100%; height: 100%; font-family: var(--font-family); background-color: var(--color-cream); color: var(--color-deep-brown); }
+    body { display: flex; overflow: hidden; }
+    .sidebar { width: 240px; background: linear-gradient(180deg, var(--color-deep-brown) 0%, var(--color-mid-brown) 100%); padding: 20px 16px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; flex-shrink: 0; }
+    .logo { font-size: 20px; font-weight: 700; color: var(--color-saffron); margin-bottom: 20px; text-align: center; }
+    .nav-button { width: 100%; padding: 12px 14px; border: 1px solid rgba(255,255,255,0.1); border-radius: var(--border-radius-sm); background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.8); cursor: pointer; font-size: 14px; font-weight: 500; text-align: left; transition: all 200ms ease; font-family: var(--font-family); }
+    .nav-button:hover { background: rgba(255,255,255,0.12); color: white; }
+    .nav-button.active { background: var(--color-saffron); color: var(--color-deep-brown); border-color: var(--color-saffron); font-weight: 600; }
+    .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    .header { background: white; padding: 16px 24px; border-bottom: 1px solid var(--color-border); }
+    .header h1 { font-size: 24px; font-weight: 700; color: var(--color-deep-brown); }
+    .content { flex: 1; overflow-y: auto; padding: 24px; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    button { font-family: var(--font-family); cursor: pointer; transition: all 200ms ease; border: none; border-radius: var(--border-radius-sm); font-size: 14px; font-weight: 500; }
+    .btn-primary { background: var(--color-saffron); color: white; padding: 10px 18px; }
+    .btn-primary:hover { background: #d67409; box-shadow: 0 4px 8px var(--color-shadow); }
+    .btn-secondary { background: white; color: var(--color-deep-brown); padding: 10px 18px; border: 1px solid var(--color-border); }
+    .btn-selector { padding: 8px 14px; font-size: 12px; background: white; color: var(--color-deep-brown); border: 1px solid var(--color-border); border-radius: 6px; }
+    .btn-selector.active { background: var(--color-saffron); color: white; border-color: var(--color-saffron); }
+    .selector-group { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+    .selector-label { font-size: 13px; font-weight: 600; color: var(--color-mid-brown); text-transform: uppercase; margin-right: 8px; align-self: center; }
+    .meal-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .meal-card { background: white; border: 2px solid var(--color-border); border-radius: var(--border-radius); padding: 14px; min-height: 120px; cursor: pointer; transition: all 200ms; }
+    .meal-card:hover { border-color: var(--color-saffron); box-shadow: 0 4px 12px var(--color-hover-shadow); }
+    .meal-card.drop-target { border: 2px dashed var(--color-saffron); background: #FFF8E1; }
+    .meal-time { font-size: 12px; color: var(--color-saffron); font-weight: 600; text-transform: uppercase; margin-bottom: 4px; }
+    .meal-name { font-weight: 600; color: var(--color-deep-brown); margin-bottom: 6px; font-size: 15px; }
+    .meal-empty { color: var(--color-mid-brown); opacity: 0.6; font-style: italic; font-size: 13px; }
+    .meal-recipe { color: var(--color-deep-brown); font-size: 13px; margin-top: 4px; padding-top: 6px; border-top: 1px solid var(--color-border); }
+    .meal-calories { font-size: 12px; color: var(--color-mid-brown); margin-top: 6px; }
+    .prep-panel { background: var(--color-cream); border: 1px solid var(--color-border); border-radius: var(--border-radius); padding: 16px; margin-top: 20px; }
+    .prep-panel h3 { font-size: 14px; font-weight: 600; color: var(--color-deep-brown); margin-bottom: 12px; }
+    .prep-step { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; cursor: pointer; }
+    .prep-step input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--color-green); margin-top: 2px; }
+    .prep-step label { flex: 1; cursor: pointer; font-size: 14px; color: var(--color-deep-brown); }
+    .prep-step input:checked + label { opacity: 0.6; text-decoration: line-through; }
+    .progress-bar { display: flex; gap: 8px; font-size: 13px; color: var(--color-mid-brown); margin-bottom: 12px; }
+    .progress-section { background: white; border: 1px solid var(--color-border); border-radius: var(--border-radius); padding: 16px; margin-bottom: 20px; }
+    .progress-header { font-weight: 600; margin-bottom: 10px; color: var(--color-deep-brown); }
+    .progress-fill { height: 8px; background: var(--color-border); border-radius: 4px; overflow: hidden; }
+    .progress-done { height: 100%; background: var(--color-green); transition: width 200ms; }
+    .shop-section { background: white; border: 1px solid var(--color-border); border-radius: var(--border-radius); padding: 16px; margin-bottom: 16px; }
+    .shop-section h3 { font-size: 15px; font-weight: 600; color: var(--color-deep-brown); margin-bottom: 12px; border-bottom: 2px solid var(--color-saffron); padding-bottom: 8px; }
+    .shop-item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--color-border); }
+    .shop-item:last-child { border-bottom: none; }
+    .shop-item input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--color-green); }
+    .shop-item-name { flex: 1; font-size: 14px; }
+    .shop-item.done .shop-item-name { opacity: 0.5; text-decoration: line-through; }
+    .shop-item-qty { font-size: 12px; color: var(--color-mid-brown); min-width: 60px; text-align: right; }
+    .shop-badge { background: var(--color-saffron); color: white; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; margin-left: 8px; }
+    .card { background: white; border: 1px solid var(--color-border); border-radius: var(--border-radius); padding: 16px; box-shadow: 0 2px 4px var(--color-shadow); transition: all 200ms; }
+    .card:hover { box-shadow: 0 4px 12px var(--color-hover-shadow); }
+    .category-section { margin-bottom: 24px; }
+    .category-title { font-size: 16px; font-weight: 700; color: var(--color-deep-brown); margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid var(--color-saffron); }
+    .recipe-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; margin-bottom: 16px; }
+    .recipe-item { background: white; border: 1px solid var(--color-border); border-radius: var(--border-radius); padding: 14px; cursor: grab; user-select: none; transition: all 200ms; }
+    .recipe-item:hover { box-shadow: 0 4px 12px var(--color-hover-shadow); border-color: var(--color-saffron); }
+    .recipe-name { font-weight: 600; color: var(--color-deep-brown); margin-bottom: 8px; }
+    .recipe-meta { font-size: 12px; color: var(--color-mid-brown); margin-bottom: 8px; }
+    .recipe-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+    .tag { background: var(--color-cream); color: var(--color-deep-brown); padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 500; }
+    .grip-icon { color: var(--color-saffron); margin-right: 6px; }
+    .recipe-link { display: inline-block; font-size: 12px; color: var(--color-saffron); text-decoration: none; margin-top: 4px; font-weight: 500; }
+    .recipe-link:hover { text-decoration: underline; color: #d67409; }
+    .recipe-detail { display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--color-border); }
+    .recipe-detail.expanded { display: block; }
+    .detail-section { margin-bottom: 12px; }
+    .detail-label { font-weight: 600; font-size: 12px; color: var(--color-mid-brown); text-transform: uppercase; margin-bottom: 6px; }
+    .detail-list { font-size: 13px; color: var(--color-deep-brown); line-height: 1.5; }
+    .extract-section { background: white; border: 1px solid var(--color-border); border-radius: var(--border-radius); padding: 20px; margin-bottom: 20px; }
+    .extract-label { display: block; font-weight: 600; margin-bottom: 10px; color: var(--color-deep-brown); font-size: 14px; }
+    textarea { width: 100%; min-height: 150px; padding: 12px; border: 1px solid var(--color-border); border-radius: var(--border-radius-sm); font-family: var(--font-family); font-size: 13px; color: var(--color-deep-brown); resize: vertical; }
+    textarea:focus { outline: none; border-color: var(--color-saffron); box-shadow: 0 0 0 3px rgba(232,130,12,0.1); }
+    .input-group { margin-bottom: 12px; }
+    label { display: block; font-weight: 500; margin-bottom: 6px; color: var(--color-deep-brown); font-size: 13px; }
+    input[type="text"], input[type="number"], input[type="date"] { width: 100%; padding: 10px 12px; border: 1px solid var(--color-border); border-radius: var(--border-radius-sm); font-family: var(--font-family); font-size: 13px; color: var(--color-deep-brown); }
+    input[type="text"]:focus, input[type="number"]:focus, input[type="date"]:focus { outline: none; border-color: var(--color-saffron); box-shadow: 0 0 0 3px rgba(232,130,12,0.1); }
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+    .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-bottom: 12px; }
+    .ingredient-list, .steps-list { list-style: none; margin-top: 8px; }
+    .ingredient-list li, .steps-list li { padding: 8px 0; border-bottom: 1px solid var(--color-border); font-size: 13px; }
+    .ingredient-list li:last-child, .steps-list li:last-child { border-bottom: none; }
+    .nutrition-item { background: white; border: 1px solid var(--color-border); border-radius: var(--border-radius); padding: 16px; margin-bottom: 12px; }
+    .nutrition-label { font-weight: 600; margin-bottom: 8px; color: var(--color-deep-brown); font-size: 13px; }
+    .nutrition-bar { height: 24px; background: var(--color-border); border-radius: 4px; overflow: hidden; margin-bottom: 6px; }
+    .nutrition-fill { height: 100%; background: var(--color-saffron); display: flex; align-items: center; justify-content: flex-end; padding-right: 8px; color: white; font-size: 11px; font-weight: 600; }
+    .nutrition-stat { font-size: 12px; color: var(--color-mid-brown); display: flex; justify-content: space-between; }
+    .weekly-chart { display: flex; align-items: flex-end; gap: 8px; height: 120px; margin-top: 12px; }
+    .chart-bar { flex: 1; background: var(--color-saffron); border-radius: 4px 4px 0 0; position: relative; min-height: 20px; }
+    .chart-label { position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%); font-size: 11px; color: var(--color-mid-brown); }
+    .chart-value { position: absolute; top: -20px; left: 50%; transform: translateX(-50%); font-size: 10px; font-weight: 600; color: var(--color-deep-brown); }
+    .alert-box { background: #FCE4E1; border: 1px solid #C0392B; border-radius: var(--border-radius); padding: 14px; margin-bottom: 20px; color: #C0392B; font-size: 13px; font-weight: 500; }
+    .alert-box strong { display: block; margin-bottom: 6px; }
+    .pantry-category { background: white; border: 1px solid var(--color-border); border-radius: var(--border-radius); padding: 16px; margin-bottom: 16px; }
+    .pantry-category h3 { font-size: 14px; font-weight: 600; color: var(--color-deep-brown); margin-bottom: 12px; border-bottom: 2px solid var(--color-saffron); padding-bottom: 8px; }
+    .pantry-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--color-border); font-size: 13px; }
+    .pantry-item:last-child { border-bottom: none; }
+    .pantry-item-info { flex: 1; }
+    .pantry-item-name { font-weight: 500; margin-bottom: 4px; }
+    .pantry-item-meta { font-size: 12px; color: var(--color-mid-brown); opacity: 0.8; }
+    .pantry-item-actions { display: flex; gap: 8px; }
+    .btn-remove { padding: 6px 10px; background: #FCE4E1; color: var(--color-red); border: 1px solid var(--color-red); border-radius: 4px; font-size: 11px; cursor: pointer; }
+    .btn-remove:hover { background: var(--color-red); color: white; }
+    .add-item-form { background: var(--color-cream); border: 1px solid var(--color-border); border-radius: var(--border-radius); padding: 16px; margin-bottom: 20px; }
+    .add-item-form h3 { font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--color-deep-brown); }
+    select { padding: 10px 12px; border: 1px solid var(--color-border); border-radius: var(--border-radius-sm); font-family: var(--font-family); font-size: 13px; background: white; cursor: pointer; }
+    select:focus { outline: none; border-color: var(--color-saffron); box-shadow: 0 0 0 3px rgba(232,130,12,0.1); }
+    .recipes-you-can-make { background: white; border: 1px solid var(--color-border); border-radius: var(--border-radius); padding: 16px; }
+    .recipes-you-can-make h3 { font-size: 14px; font-weight: 600; color: var(--color-deep-brown); margin-bottom: 12px; border-bottom: 2px solid var(--color-green); padding-bottom: 8px; }
+    .can-make-list { list-style: none; }
+    .can-make-list li { padding: 8px 0; border-bottom: 1px solid var(--color-border); font-size: 13px; }
+    .can-make-list li:last-child { border-bottom: none; }
+    .accordion { background: white; border: 1px solid var(--color-border); border-radius: var(--border-radius); margin-bottom: 12px; overflow: hidden; }
+    .accordion-header { padding: 16px; background: linear-gradient(90deg, var(--color-saffron) 0%, #f0a040 100%); color: white; font-weight: 600; cursor: pointer; display: flex; justify-content: space-between; user-select: none; transition: all 200ms; }
+    .accordion-header:hover { background: linear-gradient(90deg, #d67409 0%, #e89030 100%); }
+    .accordion-body { display: none; padding: 16px; }
+    .accordion-body.expanded { display: block; }
+    .accordion-body ol { margin-left: 20px; font-size: 13px; line-height: 1.6; }
+    .accordion-body li { margin-bottom: 8px; }
+    .kitchen-mode-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; flex-direction: column; justify-content: center; align-items: center; color: white; text-align: center; padding: 40px 20px; }
+    .kitchen-mode-overlay.active { display: flex; }
+    .kitchen-step-current { font-size: 48px; font-weight: 700; margin-bottom: 30px; line-height: 1.3; max-width: 90%; }
+    .kitchen-controls { display: flex; gap: 20px; margin-top: 40px; }
+    .kitchen-btn { padding: 16px 32px; font-size: 18px; background: var(--color-saffron); color: white; cursor: pointer; font-weight: 600; transition: all 200ms; }
+    .kitchen-btn:hover { background: #d67409; transform: scale(1.05); }
+    .kitchen-progress { position: absolute; top: 20px; right: 20px; font-size: 16px; color: rgba(255,255,255,0.8); }
+    .kitchen-close { position: absolute; top: 20px; left: 20px; background: rgba(255,255,255,0.1); color: white; border: none; border-radius: 50%; width: 48px; height: 48px; font-size: 28px; cursor: pointer; }
+    .kitchen-close:hover { background: rgba(255,255,255,0.2); }
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: var(--color-cream); }
+    ::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--color-saffron); }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <div class="logo">🥘 PrepWise DIY</div>
+    <button class="nav-button active" onclick="switchTab('meal-plan')">📅 Meal Plan</button>
+    <button class="nav-button" onclick="switchTab('prep-guide')">📋 Prep Guide</button>
+    <button class="nav-button" onclick="switchTab('shopping')">🛒 Shopping</button>
+    <button class="nav-button" onclick="switchTab('recipe-book')">📖 Recipe Book</button>
+    <button class="nav-button" onclick="switchTab('ai-extract')">✨ AI Extract</button>
+    <button class="nav-button" onclick="switchTab('nutrition')">📊 Nutrition</button>
+    <button class="nav-button" onclick="switchTab('pantry')">🥫 Pantry</button>
+    <button class="nav-button" onclick="switchTab('settings')">⚙️ Settings</button>
+    <div class="sync-status" id="sync-status" style="margin-top:auto;padding:10px;border-radius:var(--border-radius-sm);background:rgba(255,255,255,0.05);font-size:12px;color:rgba(255,255,255,0.6);text-align:center">
+      <span id="sync-indicator">●</span> <span id="sync-text">Offline</span>
+    </div>
+  </div>
+  <div class="main">
+    <div class="header"><h1 id="page-title">Meal Plan</h1></div>
+    <div class="content">
+      <div id="meal-plan" class="tab-content active">
+        <div class="selector-group"><span class="selector-label">Week:</span><button class="btn-selector active" onclick="setWeek(1)">Week 1</button><button class="btn-selector" onclick="setWeek(2)">Week 2</button><button class="btn-selector" onclick="setWeek(3)">Week 3</button></div>
+        <div class="selector-group"><span class="selector-label">Day:</span><button class="btn-selector active" data-day="0" onclick="setDay(0)">Sat</button><button class="btn-selector" data-day="1" onclick="setDay(1)">Sun</button><button class="btn-selector" data-day="2" onclick="setDay(2)">Mon</button><button class="btn-selector" data-day="3" onclick="setDay(3)">Tue</button><button class="btn-selector" data-day="4" onclick="setDay(4)">Wed</button><button class="btn-selector" data-day="5" onclick="setDay(5)">Thu</button><button class="btn-selector" data-day="6" onclick="setDay(6)">Fri</button></div>
+        <div class="progress-bar"><span>Meals planned: <strong id="meals-count">0</strong>/5</span><span>Prep steps done: <strong id="prep-done-count">0</strong></span></div>
+        <button class="btn-primary" onclick="enterKitchenMode()" style="margin-bottom:20px">🎯 Kitchen Mode</button>
+        <div class="meal-grid" id="meal-grid"></div>
+        <div class="prep-panel"><h3>🌅 Morning Prep</h3><div id="morning-prep-steps"></div></div>
+        <div class="prep-panel"><h3>🌙 Evening Prep</h3><div id="evening-prep-steps"></div></div>
+      </div>
+      <div id="prep-guide" class="tab-content">
+        <div class="accordion"><div class="accordion-header" onclick="toggleAccordion(this)">Saturday Big Cook</div><div class="accordion-body"><ol><li>Soak rice and urad dal for idli/dosa batter (4-6 hours)</li><li>Chop and prep all vegetables</li><li>Make sambar base</li><li>Grind idli/dosa batter and ferment overnight</li><li>Cook large batch of rajma masala</li><li>Label and date all containers</li></ol></div></div>
+        <div class="accordion"><div class="accordion-header" onclick="toggleAccordion(this)">Rolling Prep (Mon-Fri)</div><div class="accordion-body"><ol><li>Each evening: prep fresh salad components</li><li>Cook grains fresh each morning</li><li>Grill or roast fresh proteins</li><li>Make fresh dosa for breakfast</li><li>Refresh any prepped vegetables</li></ol></div></div>
+        <div class="accordion"><div class="accordion-header" onclick="toggleAccordion(this)">Evening Prep (After Dinner)</div><div class="accordion-body"><ol><li>Rinse and store lunch containers</li><li>Prep snack components for next day</li><li>Make overnight oats if needed</li><li>Set out any items to thaw</li><li>Check tomorrow's schedule</li></ol></div></div>
+      </div>
+      <div id="shopping" class="tab-content">
+        <div class="progress-section"><div class="progress-header">Shopping Progress</div><div class="progress-fill"><div class="progress-done" id="shopping-progress" style="width:0%"></div></div><div style="font-size:12px;color:var(--color-mid-brown);margin-top:6px"><span id="shopping-checked">0</span> / <span id="shopping-total">0</span> items checked</div></div>
+        <div class="shop-section" id="shop-1"></div>
+        <div class="shop-section" id="shop-2"></div>
+        <div class="shop-section" id="dry-goods"></div>
+      </div>
+      <div id="recipe-book" class="tab-content">
+        <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+          <input type="text" id="recipe-search" placeholder="Search 297 recipes..." oninput="renderRecipeBook()" style="flex:1;min-width:200px;padding:10px 14px;border:1px solid var(--color-border);border-radius:var(--border-radius-sm);font-size:14px;font-family:var(--font-family);background:white">
+          <select id="recipe-category-filter" onchange="renderRecipeBook()" style="padding:10px 14px;border:1px solid var(--color-border);border-radius:var(--border-radius-sm);font-size:14px;font-family:var(--font-family);background:white;color:var(--color-deep-brown)">
+            <option value="all">All Categories</option>
+          </select>
+          <span id="recipe-count" style="font-size:13px;color:var(--color-mid-brown);white-space:nowrap"></span>
+        </div>
+        <div id="recipe-book-content"></div>
+      </div>
+      <div id="ai-extract" class="tab-content">
+        <div class="extract-section"><label class="extract-label">Paste recipe text or URL content:</label><textarea id="extract-input" placeholder="Paste recipe ingredients and instructions here..."></textarea><button class="btn-primary" onclick="extractRecipe()" style="margin-top:12px">✨ Extract Recipe</button></div>
+        <div id="extract-form-container"></div>
+      </div>
+      <div id="nutrition" class="tab-content">
+        <div style="margin-bottom:20px;font-size:13px;color:var(--color-mid-brown)">Nutrition for: <strong id="nutrition-day">Saturday</strong></div>
+        <div id="nutrition-macros"></div>
+        <div class="card" style="margin-top:20px"><h3 style="font-size:14px;font-weight:600;margin-bottom:12px">Weekly Overview</h3><div class="weekly-chart" id="weekly-chart"></div></div>
+        <div class="card" style="margin-top:20px"><h3 style="font-size:14px;font-weight:600;margin-bottom:12px">Log Custom Meal</h3>
+          <div class="form-grid">
+            <div class="input-group"><label>Meal Name</label><input type="text" id="custom-meal-name" placeholder="e.g., Snack"></div>
+            <div class="input-group"><label>Calories</label><input type="number" id="custom-calories" value="0"></div>
+            <div class="input-group"><label>Protein (g)</label><input type="number" id="custom-protein" value="0"></div>
+            <div class="input-group"><label>Carbs (g)</label><input type="number" id="custom-carbs" value="0"></div>
+            <div class="input-group"><label>Fat (g)</label><input type="number" id="custom-fat" value="0"></div>
+            <div class="input-group"><label>Fiber (g)</label><input type="number" id="custom-fiber" value="0"></div>
+          </div>
+          <button class="btn-primary" onclick="addCustomMeal()" style="margin-top:12px">➕ Add Meal</button>
+        </div>
+      </div>
+      <div id="pantry" class="tab-content">
+        <div id="expiring-alert"></div>
+        <div class="add-item-form"><h3>Add Item to Pantry</h3>
+          <div class="form-row">
+            <div class="input-group"><label>Item Name</label><input type="text" id="pantry-name" placeholder="e.g., Olive oil"></div>
+            <div class="input-group"><label>Amount</label><input type="number" id="pantry-amount" value="1"></div>
+            <div class="input-group"><label>Unit</label><select id="pantry-unit"><option>ml</option><option>g</option><option>cup</option><option>tbsp</option><option>tsp</option><option>piece</option></select></div>
+            <div class="input-group"><label>Category</label><select id="pantry-category"><option>Produce</option><option>Dairy</option><option>Oils</option><option>Spices</option><option>Grains</option><option>Legumes</option></select></div>
+            <div class="input-group"><label>Expiry Date</label><input type="date" id="pantry-expiry"></div>
+          </div>
+          <button class="btn-primary" onclick="addPantryItem()">➕ Add Item</button>
+        </div>
+        <div id="pantry-inventory"></div>
+        <div class="recipes-you-can-make"><h3>Recipes You Can Make</h3><ul class="can-make-list" id="can-make-list"></ul></div>
+      </div>
+
+      <!-- SETTINGS TAB -->
+      <div id="settings" class="tab-content">
+        <div style="max-width:640px">
+          <h2 style="font-size:18px;font-weight:700;margin-bottom:16px;color:var(--color-deep-brown)">Google Sheets Sync</h2>
+          <p style="font-size:13px;color:var(--color-mid-brown);margin-bottom:20px;line-height:1.6">
+            Connect to a Google Sheet to sync your meal plans, recipes, shopping list, and pantry across all your devices.
+            Changes are saved locally first, then synced to your Sheet when connected.
+          </p>
+
+          <div class="settings-section" style="background:white;border:1px solid var(--color-border);border-radius:var(--border-radius);padding:20px;margin-bottom:16px">
+            <h3 style="font-size:14px;font-weight:600;margin-bottom:12px">1. Setup Instructions (one-time)</h3>
+            <ol style="font-size:13px;color:var(--color-mid-brown);line-height:1.8;padding-left:20px">
+              <li>Go to <a href="https://console.cloud.google.com" target="_blank" style="color:var(--color-saffron)">Google Cloud Console</a> and create a project (or use an existing one)</li>
+              <li>Enable the <strong>Google Sheets API</strong> (APIs & Services → Library → search "Sheets")</li>
+              <li>Create an <strong>OAuth 2.0 Client ID</strong>:<br>
+                Credentials → Create Credentials → OAuth client ID → <strong>Web application</strong><br>
+                Add your domain to <em>Authorized JavaScript origins</em> (for local files, use <code style="font-size:11px;background:#f0e6d9;padding:2px 6px;border-radius:4px">http://localhost</code>)
+              </li>
+              <li>Also create an <strong>API Key</strong> (Credentials → Create Credentials → API Key)</li>
+              <li>Create a new Google Sheet and grab the <strong>Sheet ID</strong> from the URL:<br>
+                <code style="font-size:11px;background:#f0e6d9;padding:2px 6px;border-radius:4px">https://docs.google.com/spreadsheets/d/<strong style="color:var(--color-saffron)">{SHEET_ID}</strong>/edit</code>
+              </li>
+            </ol>
+          </div>
+
+          <div class="settings-section" style="background:white;border:1px solid var(--color-border);border-radius:var(--border-radius);padding:20px;margin-bottom:16px">
+            <h3 style="font-size:14px;font-weight:600;margin-bottom:12px">2. Connection</h3>
+            <div style="margin-bottom:12px">
+              <label style="font-size:12px;font-weight:600;color:var(--color-mid-brown);display:block;margin-bottom:4px">OAuth Client ID</label>
+              <input type="text" id="settings-client-id" placeholder="123456789-abc.apps.googleusercontent.com" style="width:100%;padding:10px;border:1px solid var(--color-border);border-radius:var(--border-radius-sm);font-size:13px;font-family:var(--font-family)">
+            </div>
+            <div style="margin-bottom:12px">
+              <label style="font-size:12px;font-weight:600;color:var(--color-mid-brown);display:block;margin-bottom:4px">API Key</label>
+              <input type="password" id="settings-api-key" placeholder="AIzaSy..." style="width:100%;padding:10px;border:1px solid var(--color-border);border-radius:var(--border-radius-sm);font-size:13px;font-family:var(--font-family)">
+            </div>
+            <div style="margin-bottom:12px">
+              <label style="font-size:12px;font-weight:600;color:var(--color-mid-brown);display:block;margin-bottom:4px">Google Sheet ID</label>
+              <input type="text" id="settings-sheet-id" placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms" style="width:100%;padding:10px;border:1px solid var(--color-border);border-radius:var(--border-radius-sm);font-size:13px;font-family:var(--font-family)">
+            </div>
+            <div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">
+              <button class="btn-primary" onclick="saveConfigAndSignIn()">🔗 Sign In with Google</button>
+              <button class="btn-secondary" onclick="disconnectSync()">Disconnect</button>
+            </div>
+            <div id="connection-status" style="margin-top:12px;font-size:13px;padding:8px;border-radius:6px;display:none"></div>
+          </div>
+
+          <div class="settings-section" style="background:white;border:1px solid var(--color-border);border-radius:var(--border-radius);padding:20px;margin-bottom:16px">
+            <h3 style="font-size:14px;font-weight:600;margin-bottom:12px">3. Sync Controls</h3>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn-primary" onclick="syncPushAll()">⬆️ Push All to Sheet</button>
+              <button class="btn-primary" onclick="syncPullAll()">⬇️ Pull All from Sheet</button>
+              <button class="btn-secondary" onclick="syncPushAll(); syncPullAll();">🔄 Full Sync</button>
+            </div>
+            <div id="sync-log" style="margin-top:12px;font-size:12px;color:var(--color-mid-brown);max-height:200px;overflow-y:auto"></div>
+          </div>
+
+          <div class="settings-section" style="background:white;border:1px solid var(--color-border);border-radius:var(--border-radius);padding:20px;margin-bottom:16px">
+            <h3 style="font-size:14px;font-weight:600;margin-bottom:12px">4. Local Storage</h3>
+            <p style="font-size:13px;color:var(--color-mid-brown);margin-bottom:12px">Your data is always saved locally in this browser, even without Google Sheets.</p>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn-secondary" onclick="exportLocalData()">📥 Export JSON Backup</button>
+              <button class="btn-secondary" onclick="document.getElementById('import-file').click()">📤 Import JSON Backup</button>
+              <input type="file" id="import-file" accept=".json" style="display:none" onchange="importLocalData(event)">
+              <button class="btn-secondary" style="color:var(--color-red);border-color:var(--color-red)" onclick="if(confirm('Clear all local data? This cannot be undone.')) { localStorage.removeItem('prepwise_state'); location.reload(); }">🗑️ Reset All Data</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+  <div class="kitchen-mode-overlay" id="kitchen-overlay">
+    <button class="kitchen-close" onclick="exitKitchenMode()">✕</button>
+    <div class="kitchen-progress"><span id="kitchen-step-num">1</span> / <span id="kitchen-step-total">1</span></div>
+    <div class="kitchen-step-current" id="kitchen-current-step">Ready to prep!</div>
+    <div class="kitchen-controls"><button class="kitchen-btn" onclick="kitchenPrevStep()">⬅ Back</button><button class="kitchen-btn" onclick="kitchenNextStep()">Next ➡</button></div>
+  </div>
+
+  <script>
+    // ╔═══════════════════════════════════════════════════════════════╗
+    // ║  📝 YOUR RECIPE LIBRARY — 297 recipes from your Family Menu ║
+    // ║  Each recipe has: id, name, category, url (recipe link),    ║
+    // ║  ingredients, steps, nutrition, tags, servings              ║
+    // ║  Add ingredients/steps/nutrition to flesh out any recipe    ║
+    // ╚═══════════════════════════════════════════════════════════════╝
+    const RECIPES = [
+      {id:'palak-mushroom', name:'Palak Mushroom', category:'Gravies & Curries', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['gravy-options'], servings:4},
+      {id:'palak-paneer', name:'Palak Paneer', category:'Gravies & Curries', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['gravy-options'], servings:4},
+      {id:'methi-malai-matar', name:'Methi Malai Matar', category:'Gravies & Curries', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['gravy-options'], servings:4},
+      {id:'sambhar', name:'Sambhar', category:'Gravies & Curries', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['gravy-options'], servings:4},
+      {id:'rajma', name:'Rajma', category:'Gravies & Curries', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['gravy-options'], servings:4},
+      {id:'lobia', name:'Lobia', category:'Gravies & Curries', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['gravy-options'], servings:4},
+      {id:'green-chole', name:'Green Chole', category:'Gravies & Curries', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['gravy-options'], servings:4},
+      {id:'kadi', name:'Kadi', category:'Gravies & Curries', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['gravy-options'], servings:4},
+      {id:'gatta', name:'Gatta', category:'Gravies & Curries', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['gravy-options'], servings:4},
+      {id:'dahi-bhindi', name:'Dahi Bhindi', category:'Gravies & Curries', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['gravy-options'], servings:4},
+      {id:'dum-aloo', name:'Dum Aloo', category:'Gravies & Curries', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['gravy-options'], servings:4},
+      {id:'paneer-tikka-gravy', name:'Paneer Tikka gravy', category:'Gravies & Curries', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['gravy-options'], servings:4},
+      {id:'kabuli-chole', name:'Kabuli Chole', category:'Gravies & Curries', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['gravy-options'], servings:4},
+      {id:'matar-paneer', name:'Matar Paneer', category:'Gravies & Curries', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['gravy-options'], servings:4},
+      {id:'palak-daal', name:'Palak Daal', category:'Gravies & Curries', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['gravy-options'], servings:4},
+      {id:'peas-nimona', name:'Peas Nimona', category:'Gravies & Curries', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['gravy-options'], servings:4},
+      {id:'amaranth-in-coconut-broth', name:'Amaranth in coconut broth', category:'Gravies & Curries', url:'https://www.archanaskitchen.com/karnataka-style-harive-soppu-bendi-recipe-amaranth-leaves-cooked-in-coconut-broth', ingredients:['Green Amaranth Leaves, a bunch roughly chopped','1 cup Fresh coconut, grated','1 tsp Cumin seeds','1 Green Chilli','1 tsp Jaggery, crushed','1 tsp Mustard seeds','1/2 cup White Urad Dal (Split)','1 Dry Red Chilli','Asafoetida, a pinch','1 sprig Curry leaves','2 tsp Oil','Salt to taste'], steps:['Clean, wash and rough chop the amaranth greens.','Make a smooth paste of grated coconut, cumin seeds and green chilli with a little water.','Cook amaranth greens with jaggery and 2 cups water until greens wilt.','Add ground coconut masala paste and simmer 10 minutes. Season with salt.','Heat oil in tadka pan, add mustard and urad dal until they splutter.','Add asafoetida, dry red chilli and curry leaves. Pour tempering over curry.','Serve with steamed rice.'], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['gravy-options'], servings:4},
+      {id:'mushroom-in-cashew-almond-curry', name:'Mushroom in Cashew/almond curry', category:'Gravies & Curries', url:'https://www.archanaskitchen.com/almond-and-cashewnut-mushroom-curry-recipe', ingredients:['500g Button mushrooms, quartered','1 Onion, finely chopped','4 cloves Garlic, finely chopped','1 inch Ginger, finely chopped','2 Green Chillies, finely chopped','1 tbsp Sesame seeds','1 tsp Poppy seeds','5 Whole Almonds','5 Cashew nuts','1/2 tsp Black pepper powder','Oil or butter to cook','1 tsp Garam masala','Coriander leaves','Salt to taste'], steps:['Make a paste of onion, ginger, green chili and garlic.','Make a paste of almonds, cashew nuts and poppy seeds with a little water.','In a heavy-bottomed pan, add butter and sauté onion paste until raw smells go away.','Add the nut paste and sauté on medium heat for 2 minutes.','Add mushrooms, black pepper, garam masala, salt, and half cup water. Cover and cook 7-8 mins.','Garnish with coriander leaves and serve with roti or rice.'], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['gravy-options'], servings:4},
+      {id:'mushroom-curry', name:'Mushroom curry', category:'Gravies & Curries', url:'https://www.archanaskitchen.com/kodava-kummu-curry-recipe-coorg-style-mushroom-curry', ingredients:['500g Button mushrooms, chopped','2 Green Chillies, chopped','2 Dry Red Chillies','1 tsp Whole Black Peppercorns, coarsely pounded','2 Onions, thinly sliced','2 Tomatoes, chopped','1 sprig Curry leaves','2 tsp Coriander Seeds','1/4 tsp Turmeric powder','Salt to taste','Oil','1/4 cup Fresh coconut, grated','1 tsp Cumin seeds','6 cloves Garlic'], steps:['Grind fresh coconut, cumin seeds and garlic with a little water into a smooth paste.','Heat oil in kadai, add curry leaves, dry red chillies and peppercorns and sizzle.','Add sliced onions and green chillies, sauté till soft.','Add mushrooms and sauté until moisture releases.','Add ground paste, coriander seeds and turmeric. Sauté till paste smells cooked.','Add tomatoes, salt and simmer until tomatoes are soft. Serve with rice or roti.'], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['gravy-options'], servings:4},
+      {id:'baingan-in-yoghurt-poppy-mustard', name:'Baingan in yoghurt/poppy/mustard', category:'Gravies & Curries', url:'https://www.archanaskitchen.com/eggplant-in-mustard-poppy-seed-yogurt-gravy-recipe', ingredients:['1 Brinjal, cut into 1/2 inch discs','1/2 tsp Turmeric powder','1 tsp Red Chilli powder','1.5 tbsp Mustard seeds','1 tbsp Poppy seeds','Mustard oil as required','1 tsp Panch Phoran Masala','4 Green Chillies','1/2 cup Curd/Yogurt','Salt to taste'], steps:['Soak mustard and poppy seeds in water for 10 minutes.','Grind soaked mustard, poppy seeds and green chillies into a smooth paste.','Rub eggplant discs with turmeric, red chilli powder and salt.','Shallow fry brinjal rounds on each side till golden. Set aside.','Heat mustard oil, add panch phoran and let it splutter.','Add the mustard-poppy paste, cook 2-3 minutes.','Add yogurt, mix well, add fried brinjal and simmer 5 minutes. Serve with rice.'], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['gravy-options'], servings:4},
+      {id:'veggies-in-coconut-gravy', name:'Veggies in Coconut Gravy', category:'Gravies & Curries', url:'https://www.archanaskitchen.com/mulakootal-recipe-vegetables-in-coconut-gravy', ingredients:['1/2 cup Yellow Moong Dal','2 cups Mixed vegetables (radish, turnips, brinjal)','1/2 tsp Turmeric powder','1 cup Water','Salt to taste','1/2 cup Fresh coconut, grated','3 Dry Red Chillies','1 tsp Oil','1/4 tsp Mustard seeds','2 Dry Red Chillies (for tempering)','1 tsp White Urad Dal (Split)','1 sprig Curry leaves'], steps:['Grind fresh coconut and dried red chillies to a coarse paste.','Pressure cook the lentils until done.','Cook vegetables until tender in a kadai.','Add cooked dal to vegetables and mix well. Cook 5 minutes.','Add coconut paste and simmer on low flame 5 minutes.','Heat oil, add mustard, urad dal, red chillies and curry leaves for tempering.','Pour tempering over curry and serve with rice.'], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['gravy-options'], servings:4},
+      {id:'goan-kaju-curry', name:'Goan Kaju Curry', category:'Gravies & Curries', url:'https://www.archanaskitchen.com/goan-kaju-curry-recipe-goan-style-cashew-gravy', ingredients:['1 cup Cashew nuts, halved','1 Tomato, finely chopped','1 Green Bell Pepper, diced','1/2 tsp Turmeric powder','Oil for cooking','1 tbsp Coriander leaves, chopped','Salt to taste','1 cup Fresh coconut, grated','2 Onions, finely chopped','5 Garlic cloves, chopped','1 tsp Coriander Seeds','3 Byadagi Dried Chillies','5 Whole Black Peppercorns','1 tsp Cumin seeds','2 Cloves','1/2 Tamarind (marble sized)'], steps:['Soak cashew nuts in hot water for 30 minutes.','Dry roast coriander, cumin, peppercorns, cloves and red chillies until aromatic.','Add coconut and roast with spices. Add tamarind and turn off heat.','Grind roasted spices into a fine paste with water.','Heat oil, sauté onions and garlic until golden.','Add tomato and cook till mushy. Add spice paste and cook 5 minutes.','Add soaked cashews, bell pepper, turmeric, salt and water. Simmer 10 minutes.'], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['gravy-options'], servings:4},
+      {id:'gobhi-in-coconut-milk', name:'Gobhi in Coconut milk', category:'Gravies & Curries', url:'https://www.archanaskitchen.com/cauliflower-in-coconut-milk-curry-gobi-ki-sabzi', ingredients:['1 Cauliflower, cut into florets','1 Green Bell Pepper, cubed','1 tbsp Gram flour (besan)','1 tsp Coriander Powder','1 cup Curd/Yogurt','200ml Coconut milk','1/2 tsp Cumin seeds','2 sprigs Curry leaves','3 Cloves','1 inch Cinnamon stick','1 inch Ginger','Red Chilli powder to taste','Salt to taste','Oil for cooking'], steps:['Whisk together yogurt, gram flour, coconut milk, ginger, coriander powder, salt and chilli powder with 2 cups water.','Heat oil, add cumin, curry leaves, cloves, cinnamon, bell peppers and cauliflower.','Sprinkle salt and water, cover and roast cauliflower until lightly tender.','Pour the yogurt-coconut milk mixture over cauliflower.','Bring to a gentle simmer and cook 8-10 minutes until flavors meld.','Serve hot with steamed rice or rotis.'], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['gravy-options'], servings:4},
+      {id:'shahi-mix-veg-curry', name:'Shahi Mix veg curry', category:'Gravies & Curries', url:'https://www.archanaskitchen.com/hyderabadi-shahi-mixed-vegetable-curry-recipe', ingredients:['12 Baby Potatoes, boiled and cubed','1/4 cup Green peas','2 Carrots, diced','10 Green beans, cut into 2 inch pieces','1 Red Bell Pepper, diced','1 Yellow Bell Pepper, diced','2 tbsp Raisins','1/4 cup Tomato puree','1 Onion, finely chopped','3 cloves Garlic','1 inch Ginger','1 tsp Red Chilli powder','1/2 tsp Turmeric powder','1 tsp Garam masala','1 tsp Coriander Powder','1/2 tsp Cumin powder','1 Bay leaf','3 tbsp Cashew nuts','3 tbsp Fresh cream','Coriander leaves','Salt to taste','Oil'], steps:['Boil potatoes. Blanch carrots, beans and peas. Soak cashews and blend into paste.','Heat oil, add bay leaf, sauté onions with ginger-garlic paste until golden.','Add tomato puree, spice powders and cook until oil separates.','Add cashew paste and cook 3-4 minutes.','Add all vegetables, raisins, salt and a little water. Simmer 8-10 minutes.','Finish with fresh cream and coriander. Serve with naan or rice.'], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['gravy-options'], servings:4},
+      {id:'vegan-goan-curry-in-coconut-milk', name:'Vegan goan curry in coconut milk', category:'Gravies & Curries', url:'https://www.archanaskitchen.com/mushroom-caldin-recipe', ingredients:['400g Button mushrooms','1 cup Coconut milk','1 Onion, finely chopped','2 Green Chillies, slit','5 Garlic cloves, finely chopped','1 inch Ginger, finely chopped','Salt to taste','1 tsp Oil','1/2 cup Fresh coconut','20g Tamarind','1 tsp Cumin seeds','1/2 tsp Coriander Seeds','4 Dry Red Chillies','1/2 tsp Turmeric powder','1/4 cup Water'], steps:['Blend coconut, red chillies, tamarind, coriander seeds, cumin seeds and turmeric into smooth paste.','Slice mushrooms lengthwise (or halve them).','Heat oil, sauté onion, garlic, ginger and green chillies until soft.','Add the ground masala paste and cook 3-4 minutes.','Add mushrooms and cook until they release moisture.','Pour in coconut milk, season with salt and simmer 8-10 minutes. Serve with rice.'], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['gravy-options'], servings:4},
+      {id:'eggplant-yogurt-gravy', name:'Eggplant Yogurt gravy', category:'Gravies & Curries', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['gravy-options'], servings:4},
+      {id:'papaya-curry-with-coconut', name:'Papaya Curry with coconut', category:'Gravies & Curries', url:'https://www.archanaskitchen.com/omakka-curry-recipe-kerala-style-papaya-curry', ingredients:['1/2 Raw papaya, cubed','1 Green Chilli','1 cup Fresh coconut, grated','3 Pearl onions, thinly sliced','2 sprigs Curry leaves','2 tsp Red Chilli powder','1 tsp Turmeric powder','1/2 tsp Cumin seeds','1/4 tsp Mustard seeds','2 Dry Red Chillies','Tamarind (gooseberry sized)','Oil as required','Salt to taste'], steps:['Cut papaya into medium cubes. Mix with red chilli powder, turmeric and salt.','Pressure cook papaya with a little water for 1 whistle, then simmer 5 mins.','Soak tamarind in warm water and extract pulp.','Grind coconut, green chilli, 1 pearl onion and cumin into a paste.','Add coconut paste and tamarind pulp to cooked papaya. Simmer 5 mins.','Temper with mustard seeds, curry leaves, dry red chillies and remaining onions.','Pour tempering over curry and serve with rice.'], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['gravy-options'], servings:4},
+      {id:'shahi-dal-white-urad-with-almonds', name:'Shahi Dal (White Urad with Almonds)', category:'Gravies & Curries', url:'https://www.archanaskitchen.com/shahi-dal-recipe', ingredients:['1 cup White Urad Dal (Whole), soaked 8 hours','15 Whole Almonds, soaked and peeled','1/2 cup Milk','1 tsp Turmeric powder','Salt to taste','1 Onion, chopped','1 Tomato, chopped','1 tsp Cumin seeds','1 tsp Red Chilli powder','1 Green Chilli, chopped','Oil'], steps:['Pressure cook soaked urad dal with almonds, turmeric and salt for 4 whistles.','Heat oil, add cumin seeds and let them splutter.','Add onions and sauté until translucent.','Add tomatoes, salt and cook until mushy. Add chilli powder and cook 2 minutes.','Open cooked dal, add milk and cook 2 more minutes.','Add the tempered onion-tomato mixture to the dal.','Garnish with coriander and serve with naan or rice.'], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['gravy-options'], servings:4},
+      {id:'vegetables-in-coconut-curry', name:'Vegetables in Coconut curry', category:'Gravies & Curries', url:'https://www.archanaskitchen.com/mint-vegetables-moilee-recipe-mixed-vegetables-cooked-in-minty-coconut-milk', ingredients:['1.5 cups Mixed vegetables (potatoes, carrot, beans, peas), cubed','1 Onion, thinly sliced','1 Tomato, roughly chopped','1 Green Chilli, slit','1 inch Ginger, thinly sliced','2 Garlic cloves, sliced','1 sprig Curry leaves','1 cup thin Coconut milk','1 cup thick Coconut milk','1/2 tsp Mustard seeds','1/2 tsp Black pepper powder','2 tsp Oil','1 tsp Coconut Oil','1 tsp Lemon juice','2 sprigs Mint leaves (made to paste)','Salt to taste'], steps:['Extract thick and thin coconut milk and keep aside.','Heat oil, add mustard seeds and let them splutter. Add curry leaves.','Add sliced onions and sauté till translucent. Add ginger and garlic.','Add vegetables, pepper powder, turmeric and sauté.','Pour thin coconut milk and cook until vegetables are tender.','Add thick coconut milk, mint paste, lemon juice and bring to gentle simmer.','Finish with coconut oil and serve with appam or rice.'], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['gravy-options'], servings:4},
+      {id:'chettinad-mushroom-curry', name:'Chettinad Mushroom Curry', category:'Gravies & Curries', url:'https://www.archanaskitchen.com/chettinad-style-pepper-mushroom-recipe', ingredients:['1 cup Button mushrooms, sliced','1 Tomato, finely chopped','1 Green Chilli, slit','1 Bay leaf','1/2 tsp Fennel seeds','1 sprig Curry leaves','Coriander leaves, chopped','2 tbsp Oil','Salt to taste','4 tsp Fresh coconut, grated','1 tbsp Coriander Seeds','1 tsp Whole Black Peppercorns','1 tsp Cumin seeds','1 tsp Poppy seeds','1 tsp Fennel seeds','1 Cinnamon stick','2 Cardamom pods','4 Cloves','1 Star anise','1 Mace flower','1/4 tsp Nutmeg powder','3 Dry Red Chillies','2 tsp White Urad Dal','10 Shallots','5 cloves Garlic','2 inch Ginger','1/2 tsp Turmeric powder'], steps:['Dry roast coriander seeds, cumin, peppercorns, fennel, cloves, cinnamon, cardamom, star anise, mace, urad dal and red chillies until aromatic.','Add coconut to the roasted spices and roast briefly. Cool and grind with shallots, garlic, ginger into fine paste.','Heat oil, add bay leaf, fennel seeds and curry leaves.','Add tomato and green chilli, cook until soft.','Add ground Chettinad masala paste and cook 5 minutes.','Add mushrooms, turmeric, salt and a splash of water. Cover and cook 10 minutes.','Garnish with coriander and serve with rice or parotta.'], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['gravy-options'], servings:4},
+      {id:'raw-mangoes-in-coconut-curry', name:'Raw Mangoes in Coconut Curry', category:'Gravies & Curries', url:'https://www.archanaskitchen.com/mangalorean-mavinakayi-menasinakai-curry-recipe-raw-mangoes-in-coconut-based-gravy', ingredients:['1 cup Raw Mango, diced','2 tbsp Jaggery','1/4 tsp Turmeric powder','1/4 cup Tamarind Water','Salt to taste','1 cup Fresh coconut, grated','2 tsp White Urad Dal','1 tsp Chana dal','1/4 tsp Methi seeds','1/2 tsp Cumin seeds','2 tsp Sesame seeds','4 Dry Red Chillies','2 tsp Coconut Oil','1/4 tsp Asafoetida','1 tsp Mustard seeds','Curry leaves, a few'], steps:['Pressure cook raw mango with tamarind water, jaggery, turmeric and salt for 2 whistles. Simmer 5 mins.','Dry roast urad dal, chana dal, methi seeds until brown.','Add coconut and sesame seeds to roasted dals. Cool and grind into smooth paste.','Add coconut masala paste to cooked mango. Mix well and simmer 5 minutes.','Heat coconut oil, add mustard seeds, asafoetida and curry leaves.','Pour tempering over the curry. Serve with steamed rice.'], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['gravy-options'], servings:4},
+      {id:'pumpkin-spinach-curry', name:'Pumpkin Spinach Curry', category:'Gravies & Curries', url:'https://www.archanaskitchen.com/parangikkai-keerai-kuzhambu-pumpkin-spinach-curry', ingredients:['3 cups Pumpkin, cut into 1-inch cubes','1 inch Ginger','1 tsp Chana dal','2 cups Spinach leaves, tightly packed','1 tsp White Urad Dal','1/2 cup Tamarind Water','1 tbsp Jaggery','1/2 cup Fresh coconut, grated','1/2 tsp Mustard seeds','1/2 tsp Cumin seeds','2 Dry Red Chillies','5 Curry leaves','1 tsp Coriander Seeds','2 Green Chillies','1 tbsp Oil'], steps:['Dry roast chana dal and urad dal until brown.','Grind roasted dals with coconut, coriander seeds, green chillies, cumin and ginger into smooth paste.','Cook pumpkin with tamarind water, jaggery, turmeric and salt until tender.','Add spinach and cook until wilted.','Add the ground coconut paste and simmer 5-7 minutes.','Temper with mustard seeds, curry leaves and dry red chillies in oil.','Pour tempering over curry and serve with rice.'], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['gravy-options'], servings:4},
+      {id:'methi-chaman', name:'Methi Chaman', category:'Gravies & Curries', url:'https://www.archanaskitchen.com/methi-chaman-recipe-paneer-in-dark-leafy-greens-based-gravy', ingredients:['1 cup Methi leaves, tightly packed','1 cup Spinach leaves, tightly packed','150g Paneer, cubed','2 Green Chillies','1 Onion, finely chopped','1 tsp Cumin seeds','3 tbsp Mustard oil','1/4 tsp Turmeric powder','1 tsp Coriander Powder','1/2 tsp Garam masala','1/3 cup Fresh cream','Water as needed','Salt to taste'], steps:['Blanch methi and spinach in boiling salted water for 5 minutes. Drain and run under cold water.','Blend blanched greens with green chillies into a fine puree.','Heat mustard oil, add cumin seeds and let them splutter.','Add chopped onion and sauté until golden.','Add turmeric, coriander powder and the green puree. Cook 5 minutes.','Add paneer cubes, garam masala and a splash of reserved stock.','Finish with fresh cream and serve with naan or paratha.'], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['gravy-options'], servings:4},
+      {id:'goan-mushroom-curry', name:'Goan Mushroom Curry', category:'Gravies & Curries', url:'https://www.archanaskitchen.com/goan-mushroom-xacuti-recipe', ingredients:['1 tbsp Oil','400g Button mushrooms, sliced','1/2 tsp Turmeric powder','Salt to taste','2 Onions, finely chopped','2 inch Ginger, finely chopped','4 cloves Garlic, finely chopped','Coriander leaves, chopped','4 Dry Red Chillies','1 tbsp Poppy seeds','3 Cloves','1 inch Cinnamon stick','1 tbsp Whole Black Peppercorns','1 tsp Cumin seeds','1 tbsp Coriander Seeds','1/4 tsp Methi seeds','30g Tamarind'], steps:['Dry roast red chillies, poppy seeds, cloves, cinnamon, peppercorns, cumin, coriander seeds and methi seeds until aromatic.','Cool and grind roasted spices into fine powder.','Heat oil, sauté onions until golden brown.','Add ginger and garlic, cook until fragrant.','Add mushrooms, turmeric and salt. Cook until mushrooms release moisture.','Add ground spice powder and tamarind extract. Simmer 10-12 minutes.','Garnish with coriander and serve with rice or bread.'], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['gravy-options'], servings:4},
+      {id:'rajma-kofta-in-posto-curry', name:'Rajma Kofta in Posto Curry', category:'Gravies & Curries', url:'https://www.archanaskitchen.com/rajma-kofta-in-milk-and-poppy-seed-gravy-recipe', ingredients:['1/2 cup Rajma (Kidney Beans)','1/4 cup Cashew nuts','2 tbsp Raisins','1/4 tsp Asafoetida','1/4 tsp Cumin seeds','2 tbsp Gram flour (besan)','1/4 tsp Red Chilli powder','2 tsp Coriander leaves, chopped','2 tsp Ghee','3 tsp Poppy seeds, ground to paste','1 tsp Fresh cream','1/2 cup Milk','1/2 tsp Garam masala','Water as required','Salt to taste','Saffron strands for garnish'], steps:['Soak rajma overnight and pressure cook until soft.','Blend cooked rajma with besan, cashew, raisins, chilli powder, asafoetida and coriander into a dough.','Shape into small round kofta balls. Shallow fry in ghee until golden.','For gravy: heat ghee, add cumin seeds, poppy seed paste and cook 2-3 minutes.','Add milk, garam masala, salt and bring to simmer.','Add koftas to the gravy and cook gently 5 minutes.','Finish with cream, saffron and serve with naan.'], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['gravy-options'], servings:4},
+      {id:'gobhi-kofta-curry', name:'Gobhi Kofta Curry', category:'Gravies & Curries', url:'https://www.archanaskitchen.com/green-beans-paruppu-araichu-recipe-paruppu-usilli', ingredients:['200g Green beans, finely chopped','1 tbsp Gingelly oil','1 tsp Mustard seeds','1 tsp White Urad Dal','2 sprigs Curry leaves','1/2 tsp Asafoetida','1 cup Toor Dal','4 Dry Red Chillies','Salt to taste','1/2 tsp Turmeric powder'], steps:['Soak toor dal in water for 1 hour, then drain.','Grind soaked dal with turmeric and red chillies into coarse mixture.','Steam the ground dal mixture in greased steamer plates for 10 minutes.','Crumble the steamed dal into small pieces.','Boil green beans with salt and turmeric until tender. Drain.','Heat gingelly oil, add mustard seeds, urad dal, curry leaves and asafoetida.','Add beans and crumbled steamed dal. Toss together and serve with rice and sambar.'], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['gravy-options'], servings:4},
+      {id:'caulifower-in-coconut-milk', name:'Caulifower in coconut milk', category:'Gravies & Curries', url:'https://www.archanaskitchen.com/cauliflower-in-coconut-milk-curry-gobi-ki-sabzi', ingredients:['1 Cauliflower, cut into florets','1 Green Bell Pepper, cubed','1 tbsp Gram flour (besan)','1 tsp Coriander Powder','1 cup Curd/Yogurt','200ml Coconut milk','1/2 tsp Cumin seeds','2 sprigs Curry leaves','3 Cloves','1 inch Cinnamon stick','1 inch Ginger','Red Chilli powder to taste','Salt to taste','Oil for cooking'], steps:['Whisk together yogurt, gram flour, coconut milk, ginger, coriander powder, salt and chilli powder with 2 cups water.','Heat oil, add cumin, curry leaves, cloves, cinnamon, bell peppers and cauliflower.','Sprinkle salt and water, cover and roast cauliflower until lightly tender.','Pour the yogurt-coconut milk mixture over cauliflower.','Bring to a gentle simmer and cook 8-10 minutes until flavors meld.','Serve hot with steamed rice or rotis.'], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['gravy-options'], servings:4},
+      {id:'tomato-curry', name:'Tomato Curry', category:'Gravies & Curries', url:'https://www.archanaskitchen.com/tomato-gotsu-recipe-spicy-tangy-tomato-gravy', ingredients:['1 tbsp Sesame Oil','1/2 tsp Mustard seeds','1 sprig Curry leaves','2 cloves Garlic, chopped','1 cup Pearl onions, quartered','4 Tomatoes','15g Tamarind, soaked in warm water','2 tsp Sambar Powder','1/2 tsp Turmeric powder','1 tsp Salt','1 tbsp Jaggery'], steps:['Soak tamarind in hot water 20 minutes. Extract 1/2 cup thick tamarind water.','Roughly chop tomatoes and pulse in mixer to chunky sauce.','Heat sesame oil, add mustard seeds and let them crackle.','Add curry leaves, garlic and pearl onions. Sauté until tender.','Add tomato sauce, sambar powder, turmeric, salt and tamarind water.','Pressure cook 2 whistles or simmer 15 minutes. Add jaggery and mix.','Serve with idli, dosa or rice.'], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['gravy-options'], servings:4},
+      {id:'toor-dal-balls-gravy', name:'Toor dal balls gravy', category:'Dal Specialties', url:'https://www.archanaskitchen.com/karnataka-style-sandige-huli-recipe-toor-dal-dumplings-in-gravy-recipe', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['dal-options'], servings:4},
+      {id:'gujrati-creamy-dal', name:'Gujrati Creamy Dal', category:'Dal Specialties', url:'https://www.archanaskitchen.com/gujarati-trevti-dal-recipe-creamy-lentils-cooked-in-mild-spices', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['dal-options'], servings:4},
+      {id:'mangalorean-sprouted-dal', name:'Mangalorean Sprouted Dal', category:'Dal Specialties', url:'https://www.archanaskitchen.com/mangalorean-padengi-ghassi-recipe-sprouted-moong-dal-curry', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['dal-options'], servings:4},
+      {id:'hyderabadi-khatti-dal', name:'Hyderabadi Khatti Dal', category:'Dal Specialties', url:'https://www.archanaskitchen.com/hyderabadi-khatti-dal-recipe-hyderabadi-tangy-lentil-curry', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['dal-options'], servings:4},
+      {id:'lauki', name:'Lauki', category:'Dry Vegetables', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['dry-veg-options'], servings:4},
+      {id:'taroi', name:'Taroi', category:'Dry Vegetables', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['dry-veg-options'], servings:4},
+      {id:'kaddoo', name:'Kaddoo', category:'Dry Vegetables', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['dry-veg-options'], servings:4},
+      {id:'gajar-methi', name:'Gajar Methi', category:'Dry Vegetables', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['dry-veg-options'], servings:4},
+      {id:'beet-root-veg', name:'Beet Root Veg', category:'Dry Vegetables', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['dry-veg-options'], servings:4},
+      {id:'cabbage', name:'Cabbage', category:'Dry Vegetables', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['dry-veg-options'], servings:4},
+      {id:'bhindi', name:'Bhindi', category:'Dry Vegetables', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['dry-veg-options'], servings:4},
+      {id:'baigan-bhartha', name:'Baigan Bhartha', category:'Dry Vegetables', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['dry-veg-options'], servings:4},
+      {id:'tinda', name:'Tinda', category:'Dry Vegetables', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['dry-veg-options'], servings:4},
+      {id:'gobi-aloo', name:'Gobi Aloo', category:'Dry Vegetables', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['dry-veg-options'], servings:4},
+      {id:'paneer-bhurji', name:'Paneer Bhurji', category:'Dry Vegetables', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['dry-veg-options'], servings:4},
+      {id:'gobi-bhurji', name:'Gobi Bhurji', category:'Dry Vegetables', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['dry-veg-options'], servings:4},
+      {id:'karela', name:'Karela', category:'Dry Vegetables', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['dry-veg-options'], servings:4},
+      {id:'beans-aloo', name:'Beans Aloo', category:'Dry Vegetables', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['dry-veg-options'], servings:4},
+      {id:'mooli-ki-subzi', name:'Mooli ki Subzi', category:'Dry Vegetables', url:'https://www.vegrecipesofindia.com/mooli-ki-bhurji-punjabi-mooli-bhurji/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['dry-veg-options'], servings:4},
+      {id:'dahi-baigan', name:'Dahi Baigan', category:'Dry Vegetables', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['dry-veg-options'], servings:4},
+      {id:'spring-onion', name:'Spring Onion', category:'Dry Vegetables', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['dry-veg-options'], servings:4},
+      {id:'zuccini-subzi', name:'Zuccini Subzi', category:'Dry Vegetables', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['dry-veg-options'], servings:4},
+      {id:'vangyache-bharit-mh-style-baingan-bharta', name:'Vangyache Bharit (MH style Baingan bharta)', category:'Dry Vegetables', url:'https://www.herzindagi.com/recipe-tips/maharashtrain-cuisine-baingan-ka-bharta-made-with-curd-recipe-by-chef-marathi-menu-twist-article-160249', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['dry-veg-options'], servings:4},
+      {id:'palak-methi-soya', name:'Palak Methi Soya', category:'Dry Vegetables', url:'https://www.archanaskitchen.com/soya-methi-palak-ki-sabzi-recipe', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['dry-veg-options'], servings:4},
+      {id:'baingan-in-imli', name:'Baingan in Imli', category:'Dry Vegetables', url:'https://www.archanaskitchen.com/sauteed-aubergine-with-tamarind', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['dry-veg-options'], servings:4},
+      {id:'dry-green-moong-dal', name:'Dry Green Moong Dal', category:'Dry Vegetables', url:'https://www.archanaskitchen.com/jain-style-whole-green-moong-dal-subzi-recipe-gujarati-vaghareli-mag', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['dry-veg-options'], servings:4},
+      {id:'palak-and-moong-dal', name:'Palak and moong dal', category:'Dry Vegetables', url:'https://www.archanaskitchen.com/milagu-keerai-poricha-kootu-recipe-palak-and-moong-dal-kootu', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['dry-veg-options'], servings:4},
+      {id:'bhindi-tamatar', name:'Bhindi Tamatar', category:'Dry Vegetables', url:'https://www.archanaskitchen.com/ajwaini-tamatar-bhindi-recipe', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['dry-veg-options'], servings:4},
+      {id:'capsicum-cashew-peanuts', name:'Capsicum Cashew Peanuts', category:'Dry Vegetables', url:'https://www.archanaskitchen.com/shimla-mirchi-panchamrut-recipe-capsicum-gothsu', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['dry-veg-options'], servings:4},
+      {id:'paneer-curry', name:'Paneer Curry', category:'Dry Vegetables', url:'https://www.archanaskitchen.com/chettinad-style-paneer-kurma-recipe-in-hindi', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['dry-veg-options'], servings:4},
+      {id:'mushroom-do-pyaza', name:'Mushroom Do pyaza', category:'Dry Vegetables', url:'https://www.archanaskitchen.com/mushroom-do-pyaza-recipe', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['dry-veg-options'], servings:4},
+      {id:'methi-brinjal-bhartha', name:'Methi Brinjal Bhartha', category:'Dry Vegetables', url:'https://www.archanaskitchen.com/baingan-methi-ka-bharta-recipe-with-pomegranates', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['dry-veg-options'], servings:4},
+      {id:'snake-gourd-poriyal', name:'Snake gourd Poriyal', category:'Dry Vegetables', url:'https://www.archanaskitchen.com/pudalangai-poriyal-recipe-snake-gourd-poriyal-recipe', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['dry-veg-options'], servings:4},
+      {id:'methi-moong-sabzi', name:'Methi Moong Sabzi', category:'Dry Vegetables', url:'https://www.zaykakatadka.com/recipe/mogar-methi-curry/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['dry-veg-options'], servings:4},
+      {id:'methi-palak-paneer', name:'Methi Palak Paneer', category:'Dry Vegetables', url:'https://www.saveur.com/article/recipes/methi-malai-paneer-creamy-fenugreek-and-spinach-with-cheese/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['dry-veg-options'], servings:4},
+      {id:'lasooni-methi', name:'Lasooni Methi', category:'Dry Vegetables', url:'https://cookpad.com/in/recipes/7048623-lasuni-methi', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['dry-veg-options'], servings:4},
+      {id:'raw-banana-matar', name:'Raw Banana Matar', category:'Dry Vegetables', url:'https://www.archanaskitchen.com/kela-matar-ki-sabzi-recipe-raw-banana-green-peas-stir-fry', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['dry-veg-options'], servings:4},
+      {id:'bhindi-peanut-fry', name:'Bhindi Peanut Fry', category:'Dry Vegetables', url:'https://www.archanaskitchen.com/moongphali-bhindi-recipe-okra-and-peanut-stir-fry', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['dry-veg-options'], servings:4},
+      {id:'chow-chow-poriyal', name:'Chow Chow Poriyal', category:'Dry Vegetables', url:'https://www.archanaskitchen.com/chow-chow-thoran-poriyal-recipe', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['dry-veg-options'], servings:4},
+      {id:'chow-chow-and-beans-poriyal', name:'Chow Chow and beans Poriyal', category:'Dry Vegetables', url:'https://www.archanaskitchen.com/chow-chow-and-beans-poriyal-recipe', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['dry-veg-options'], servings:4},
+      {id:'beans-and-dal-paruppu', name:'Beans and Dal Paruppu', category:'Dry Vegetables', url:'https://www.archanaskitchen.com/green-beans-paruppu-araichu-recipe-paruppu-usilli', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['dry-veg-options'], servings:4},
+      {id:'stir-fry-spinach', name:'Stir Fry Spinach', category:'Dry Vegetables', url:'https://www.archanaskitchen.com/spinach-stir-fry-recipe-with-garlic', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['dry-veg-options'], servings:4},
+      {id:'black-chana-turai', name:'Black Chana Turai', category:'Dry Vegetables', url:'https://www.archanaskitchen.com/chana-turai-nenua-chana-sabzi-recipe-ridge-gourd-with-black-chana-recipe', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['dry-veg-options'], servings:4},
+      {id:'andhra-style-stuffed-kundru', name:'Andhra Style Stuffed kundru', category:'Dry Vegetables', url:'https://www.archanaskitchen.com/gutti-dondakaya-vepudu-recipe-andhra-style-stuffed-ivy-gourds', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['dry-veg-options'], servings:4},
+      {id:'dry-kundru-coconut-jaggery-tamarind', name:'Dry Kundru - coconut + jaggery + Tamarind', category:'Dry Vegetables', url:'https://www.archanaskitchen.com/konkani-tendli-sukke-recipe-ivy-gourd-tindora-stir-fry', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['dry-veg-options'], servings:4},
+      {id:'tur-dal', name:'Tur Dal', category:'Dals & Breads', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['daal'], servings:4},
+      {id:'yellow-moong-dal', name:'Yellow Moong Dal', category:'Dals & Breads', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['daal'], servings:4},
+      {id:'green-moong-dal', name:'Green Moong Dal', category:'Dals & Breads', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['daal'], servings:4},
+      {id:'green-split', name:'Green Split', category:'Dals & Breads', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['daal'], servings:4},
+      {id:'black-split-dal', name:'Black Split Dal', category:'Dals & Breads', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['daal'], servings:4},
+      {id:'lauki-channe-ki-daal', name:'Lauki Channe ki daal', category:'Dals & Breads', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['daal'], servings:4},
+      {id:'channe-ki-dal', name:'Channe ki Dal', category:'Dals & Breads', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['daal'], servings:4},
+      {id:'maa-ki-daal', name:'Maa ki Daal', category:'Dals & Breads', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['daal'], servings:4},
+      {id:'daal-dhokli', name:'Daal Dhokli', category:'Dals & Breads', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['daal'], servings:4},
+      {id:'sprouted-moong-in-coconut-curry', name:'Sprouted Moong in coconut curry', category:'Dals & Breads', url:'https://www.archanaskitchen.com/mooga-gathi-sprouted-moong-in-coconut-paste-recipe', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['daal'], servings:4},
+      {id:'coconut-moong-dal', name:'Coconut Moong Dal', category:'Dals & Breads', url:'https://www.archanaskitchen.com/kerala-cherupayar-curry-recipe-green-moong-and-yellow-moong-dal-recipe', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['daal'], servings:4},
+      {id:'dhansak', name:'Dhansak', category:'Dals & Breads', url:'https://www.archanaskitchen.com/vegetable-dhansak-recipe-a-classic-parsi-dish', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['daal'], servings:4},
+      {id:'horsegram-dal', name:'Horsegram dal', category:'Dals & Breads', url:'https://www.archanaskitchen.com/horsegram-dal-recipe', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['daal'], servings:4},
+      {id:'chow-chow-dal', name:'Chow Chow Dal', category:'Dals & Breads', url:'https://www.archanaskitchen.com/chow-chow-thakkali-kootu-recipe-chayote-squash-in-dal-coconut-curry', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['daal'], servings:4},
+      {id:'bread', name:'Bread', category:'Dals & Breads', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['daal'], servings:4},
+      {id:'dosa', name:'Dosa', category:'Dals & Breads', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['daal'], servings:4},
+      {id:'ragi-roti', name:'Ragi Roti', category:'Dals & Breads', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['daal'], servings:4},
+      {id:'green-moong-chilla', name:'Green Moong Chilla', category:'Dals & Breads', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['daal'], servings:4},
+      {id:'besan-chilla', name:'Besan Chilla', category:'Dals & Breads', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['daal'], servings:4},
+      {id:'dal-bhari-parantha', name:'Dal Bhari Parantha', category:'Dals & Breads', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['daal'], servings:4},
+      {id:'akki-roti', name:'Akki Roti', category:'Dals & Breads', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['daal'], servings:4},
+      {id:'oats-rice-pesaruttu', name:'Oats Rice Pesaruttu', category:'Dals & Breads', url:'https://www.archanaskitchen.com/the-oat-and-green-moong-dal-pesarattu-savory-lentil-crepe-recipe', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['daal'], servings:4},
+      {id:'sprouts-salad', name:'Sprouts Salad', category:'Salads', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['salads'], servings:4},
+      {id:'sprouts-cooked-salad', name:'Sprouts cooked salad', category:'Salads', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['salads'], servings:4},
+      {id:'tofu-salad', name:'Tofu Salad', category:'Salads', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['salads'], servings:4},
+      {id:'chole-salad', name:'Chole Salad', category:'Salads', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['salads'], servings:4},
+      {id:'rajma-salad', name:'Rajma Salad', category:'Salads', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['salads'], servings:4},
+      {id:'avocado-salad', name:'Avocado Salad', category:'Salads', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['salads'], servings:4},
+      {id:'feta-salad', name:'Feta Salad', category:'Salads', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['salads'], servings:4},
+      {id:'roasted-mushroom-zucchini', name:'Roasted mushroom Zucchini', category:'Salads', url:'https://www.archanaskitchen.com/roasted-mushroom-zucchini-salad-with-feta-cheese', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['salads'], servings:4},
+      {id:'methi-seeds-salad', name:'Methi Seeds Salad', category:'Salads', url:'https://www.archanaskitchen.com/methi-sprouts-salad-recipe-healthy-tasty-diabetic-snack', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['salads'], servings:4},
+      {id:'beetroot-greens-salad', name:'Beetroot Greens Salad', category:'Salads', url:'https://www.archanaskitchen.com/beetroot-salad-recipe-with-mixed-greens-feta-cheese', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['salads'], servings:4},
+      {id:'thai-cabbage-salad', name:'Thai Cabbage Salad', category:'Salads', url:'https://www.archanaskitchen.com/asian-cabbage-salad-with-ginger-peanut-dressing', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['salads'], servings:4},
+      {id:'zucchini-bell-pepper-salad', name:'Zucchini Bell Pepper Salad', category:'Salads', url:'https://www.archanaskitchen.com/zucchini-and-bell-pepper-stir-fry-recipe', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['salads'], servings:4},
+      {id:'zucchini-noodles-salad', name:'Zucchini Noodles Salad', category:'Salads', url:'https://www.archanaskitchen.com/zoodles-zucchini-noodles-recipe', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['salads'], servings:4},
+      {id:'chole-moongfali-salad', name:'Chole moongfali salad', category:'Salads', url:'https://www.archanaskitchen.com/kabuli-chana-moongphali-salad-recipe', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['salads'], servings:4},
+      {id:'apple-beet-chickpeas', name:'Apple beet Chickpeas', category:'Salads', url:'https://www.archanaskitchen.com/roasted-chickpeas-with-apples-salad-recipe', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['salads'], servings:4},
+      {id:'quinoa-spinach-salad', name:'Quinoa Spinach Salad', category:'Salads', url:'https://www.aheadofthyme.com/2016/02/quinoa-spinach-power-salad-with-lemon-vinaigrette/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['salads'], servings:4},
+      {id:'bak-choy-salad', name:'Bak choy Salad', category:'Salads', url:'http://whiteplateblankslate.com/bok-choy-salad/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['salads'], servings:4},
+      {id:'kale-with-mozzarella-sour-cream-lemon', name:'Kale with Mozzarella, Sour cream & Lemon', category:'Salads', url:'https://www.epicurious.com/recipes/food/views/massaged-kale-with-tomatoes-creamed-mozzarella-and-wild-rice', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['salads'], servings:4},
+      {id:'kale-with-hummus', name:'Kale with Hummus', category:'Salads', url:'https://www.epicurious.com/recipes/food/views/winter-salad-hummus-bowls', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['salads'], servings:4},
+      {id:'watermelon-yoghurt-poppy-rosemary', name:'Watermelon, yoghurt, poppy, rosemary', category:'Salads', url:'https://www.epicurious.com/recipes/food/views/watermelon-with-yogurt-poppy-seeds-and-fried-rosemary', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['salads'], servings:4},
+      {id:'greek-salad', name:'Greek Salad', category:'Salads', url:'https://www.epicurious.com/recipes/food/views/summery-confetti-salad-51183680', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['salads'], servings:4},
+      {id:'apple-bok-choy-salad', name:'Apple Bok Choy Salad', category:'Salads', url:'https://www.epicurious.com/recipes/food/views/apple-bok-choy-salad-56389418', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['salads'], servings:4},
+      {id:'red-cabbage-salad', name:'Red Cabbage Salad', category:'Salads', url:'https://www.myweekendkitchen.in/purple-red-cabbage-salad-vegan/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['salads'], servings:4},
+      {id:'bok-choy-with-garlic-dressing', name:'Bok Choy with Garlic dressing', category:'Salads', url:'http://whiteplateblankslate.com/bok-choy-salad/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['salads'], servings:4},
+      {id:'all-salad-recipes', name:'All salad recipes', category:'Salads', url:'https://ifoodreal.com/healthy-salad-recipes/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['salads'], servings:4},
+      {id:'lettuce-salad', name:'Lettuce Salad', category:'Salads', url:'https://ifoodreal.com/lettuce-salad/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['salads'], servings:4},
+      {id:'broccoli-salad', name:'Broccoli Salad', category:'Salads', url:'https://www.simplyrecipes.com/recipes/broccoli_salad/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['salads'], servings:4},
+      {id:'red-cabbage-with-apple', name:'Red Cabbage with apple', category:'Salads', url:'https://natashaskitchen.com/red-cabbage-salad-with-apple/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['salads'], servings:4},
+      {id:'dahi-sanchwich', name:'Dahi Sanchwich', category:'Sandwiches & Wraps', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['sandwiches'], servings:4},
+      {id:'mushroom-spinach', name:'Mushroom, Spinach', category:'Sandwiches & Wraps', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['sandwiches'], servings:4},
+      {id:'paneer-sandwich', name:'Paneer Sandwich', category:'Sandwiches & Wraps', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['sandwiches'], servings:4},
+      {id:'mexican-fajita-veggies', name:'Mexican Fajita veggies', category:'Sandwiches & Wraps', url:'https://www.isabeleats.com/mexican-fajita-grilled-cheese/?utm_source=From+Cats+to+Cooking+Updates&utm_campaign=8ce83d0408-RSS_EMAIL_CAMPAIGN&utm_medium=email&utm_term=0_74f1cb24f6-8ce83d0408-95860585', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['sandwiches'], servings:4},
+      {id:'avocado-and-sundried-tomatoes', name:'Avocado and Sundried Tomatoes', category:'Sandwiches & Wraps', url:'https://in.pinterest.com/pin/50243352080648392/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['sandwiches'], servings:4},
+      {id:'chickpeas-avocado-and-spring-onions', name:'Chickpeas, Avocado and Spring Onions', category:'Sandwiches & Wraps', url:'https://in.pinterest.com/pin/205617539227423306/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['sandwiches'], servings:4},
+      {id:'roasted-chickpeas-wrap', name:'Roasted Chickpeas Wrap', category:'Sandwiches & Wraps', url:'https://in.pinterest.com/pin/291326669650211450/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['sandwiches'], servings:4},
+      {id:'hummus-sprouts', name:'Hummus & Sprouts', category:'Sandwiches & Wraps', url:'https://www.blessthismessplease.com/ultimate-hummus-veggie-sandwich', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['sandwiches'], servings:4},
+      {id:'veg-frankie-with-potato-dog', name:'Veg frankie with potato dog', category:'Sandwiches & Wraps', url:'https://www.spiceupthecurry.com/frankie-recipe/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['sandwiches'], servings:4},
+      {id:'tofu-keema-wrap', name:'Tofu Keema Wrap', category:'Sandwiches & Wraps', url:'https://www.youtube.com/watch?v=FYM350iUzsw', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['sandwiches'], servings:4},
+      {id:'accompaniments', name:'Accompaniments', category:'Sandwiches & Wraps', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['sandwiches'], servings:4},
+      {id:'pudina-coconut-raita', name:'Pudina coconut Raita', category:'Sandwiches & Wraps', url:'https://www.archanaskitchen.com/pudina-tambuli-recipe', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['sandwiches'], servings:4},
+      {id:'mirchi-chatakka', name:'Mirchi chatakka', category:'Sandwiches & Wraps', url:'https://www.archanaskitchen.com/mirchicha-chatka-fire-roasted-chillies-with-yogurt-recipe', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['sandwiches'], servings:4},
+      {id:'noodle-soup-with-vegatables', name:'Noodle Soup with Vegatables', category:'Fancy Meals', url:'https://mobile.kptncook.com/recipe/pinterest/noodle-soup-with-vegetables/153caffa?lang=en', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['fancy-meal'], servings:4},
+      {id:'broccoli-cashew-stir-fry', name:'Broccoli cashew Stir Fry', category:'Fancy Meals', url:'https://www.thegardengrazer.com/2019/03/broccoli-cashew-stir-fry.html', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['fancy-meal'], servings:4},
+      {id:'bean-burrito-bowl', name:'Bean Burrito Bowl', category:'Fancy Meals', url:'https://in.pinterest.com/pin/344595808993660968/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['fancy-meal'], servings:4},
+      {id:'curry-ramen-bowl', name:'Curry Ramen Bowl', category:'Fancy Meals', url:'https://midwestfoodieblog.com/vegan-curry-ramen/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['fancy-meal'], servings:4},
+      {id:'keto-low-carb-mac-cheese', name:'Keto: Low carb Mac & Cheese', category:'Fancy Meals', url:'https://perfectketo.com/keto-cauliflower-mac-and-cheese/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['fancy-meal'], servings:4},
+      {id:'eggplant-chips', name:'Eggplant Chips', category:'Fancy Meals', url:'https://perfectketo.com/eggplant-chips/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['fancy-meal'], servings:4},
+      {id:'quinoa-risotto', name:'Quinoa Risotto', category:'Fancy Meals', url:'https://www.archanaskitchen.com/brown-rice-quinoa-risotto-recipe', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['fancy-meal'], servings:4},
+      {id:'mushroom-stragnoff', name:'Mushroom Stragnoff', category:'Fancy Meals', url:'https://www.archanaskitchen.com/mushroom-storgonoff-recipe', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['fancy-meal'], servings:4},
+      {id:'pumkin-spinach-quesedillas', name:'Pumkin & Spinach Quesedillas', category:'Fancy Meals', url:'https://www.archanaskitchen.com/pumpkin-and-spinach-quesadillas-recipe', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['fancy-meal'], servings:4},
+      {id:'papad-nachos', name:'Papad Nachos', category:'Fancy Meals', url:'https://www.archanaskitchen.com/papad-nachos-with-salsa-recipe', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['fancy-meal'], servings:4},
+      {id:'zucchini-bell-pepper-stir-fry', name:'Zucchini Bell Pepper Stir Fry', category:'Fancy Meals', url:'https://www.archanaskitchen.com/zucchini-and-bell-pepper-stir-fry-recipe', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['fancy-meal'], servings:4},
+      {id:'one-pot-enchiladas', name:'One pot enchiladas', category:'Fancy Meals', url:'https://www.cookwithmanali.com/one-pot-vegetarian-enchiladas/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['fancy-meal'], servings:4},
+      {id:'veggies-in-paprika-sauce', name:'Veggies in Paprika sauce', category:'Fancy Meals', url:'https://www.youtube.com/watch?v=jjs1zGhtRsY', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['fancy-meal'], servings:4},
+      {id:'enchiladas', name:'Enchiladas', category:'Fancy Meals', url:'https://www.youtube.com/watch?v=qGPsT5jzjqM', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['fancy-meal'], servings:4},
+      {id:'roasted-veggies-in-red-bell-pepper-sauce', name:'Roasted Veggies in red bell pepper sauce', category:'Fancy Meals', url:'https://www.archanaskitchen.com/herbed-vegetables-in-roasted-bell-pepper-sauce-recipe', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['fancy-meal'], servings:4},
+      {id:'spinach-au-gratin', name:'Spinach Au Gratin', category:'Fancy Meals', url:'https://www.archanaskitchen.com/spinach-and-corn-au-gratin-recipe-with-cheesy-dip', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['fancy-meal'], servings:4},
+      {id:'grilled-paneer-satay', name:'Grilled Paneer Satay', category:'Fancy Meals', url:'https://www.archanaskitchen.com/grilled-tofu-satay-wrapped-in-lettuce-with-peanut-dipping-sauce', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['fancy-meal'], servings:4},
+      {id:'broccoli-quiche', name:'Broccoli Quiche', category:'Fancy Meals', url:'https://www.archanaskitchen.com/eggless-broccoli-quiche', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['fancy-meal'], servings:4},
+      {id:'spinach-tomato-quiche', name:'Spinach Tomato Quiche', category:'Fancy Meals', url:'https://www.archanaskitchen.com/spinach-and-tomato-quiche-recipe', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['fancy-meal'], servings:4},
+      {id:'', name:'`', category:'Fancy Meals', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['fancy-meal'], servings:4},
+      {id:'chimichurri-sauce', name:'Chimichurri Sauce', category:'Seasonings & Sauces', url:'https://www.simplyrecipes.com/recipes/chimichurri/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['seasonings'], servings:4},
+      {id:'basil-pesto', name:'Basil Pesto', category:'Seasonings & Sauces', url:'https://cookieandkate.com/how-to-make-basil-pesto/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['seasonings'], servings:4},
+      {id:'teriyaki-sauce-for-asian-stir-fry-prep', name:'Teriyaki Sauce (for Asian Stir Fry Prep)', category:'Seasonings & Sauces', url:'https://www.thegardengrazer.com/2018/09/easy-teriyaki-sauce.html', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['seasonings'], servings:4},
+      {id:'hummus', name:'Hummus', category:'Seasonings & Sauces', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['seasonings'], servings:4},
+      {id:'sour-cream', name:'Sour Cream', category:'Seasonings & Sauces', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['seasonings'], servings:4},
+      {id:'salsa', name:'Salsa', category:'Seasonings & Sauces', url:'https://www.cookingclassy.com/fresh-homemade-salsa/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['seasonings'], servings:4},
+      {id:'red-curry-paste', name:'Red Curry Paste', category:'Seasonings & Sauces', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['seasonings'], servings:4},
+      {id:'thai-peanut-sauce', name:'Thai Peanut Sauce', category:'Seasonings & Sauces', url:'https://eatwithclarity.com/easy-thai-peanut-sauce/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['seasonings'], servings:4},
+      {id:'mango-tomato-bean-salsa', name:'Mango Tomato Bean Salsa', category:'Seasonings & Sauces', url:'https://www.archanaskitchen.com/mango-tomato-bean-salsa-recipe', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['seasonings'], servings:4},
+      {id:'pineapple-salsa', name:'Pineapple Salsa', category:'Seasonings & Sauces', url:'https://www.archanaskitchen.com/spicy-grilled-pineapple-salsa-recipe', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['seasonings'], servings:4},
+      {id:'tahini-dressing', name:'Tahini Dressing', category:'Seasonings & Sauces', url:'https://minimalistbaker.com/make-tahini-dressing/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['seasonings'], servings:4},
+      {id:'poha', name:'Poha', category:'Breakfast', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'upma', name:'Upma', category:'Breakfast', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'omlette', name:'Omlette', category:'Breakfast', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'parantha', name:'Parantha', category:'Breakfast', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'besan-chilla-2', name:'Besan Chilla', category:'Breakfast', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'green-moong-chilla-2', name:'Green Moong Chilla', category:'Breakfast', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'idli-sambhar', name:'Idli Sambhar', category:'Breakfast', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'rava-dosa', name:'Rava Dosa', category:'Breakfast', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'dosa-plain', name:'Dosa - Plain', category:'Breakfast', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'open-butter-masala-dosa', name:'Open Butter Masala Dosa', category:'Breakfast', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'apam-stew', name:'Apam Stew', category:'Breakfast', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'sabundana', name:'Sabundana', category:'Breakfast', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'shavige-batha', name:'Shavige Batha', category:'Breakfast', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'methi-thepla', name:'Methi Thepla', category:'Breakfast', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'namkin-daliya', name:'Namkin Daliya', category:'Breakfast', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'adai', name:'Adai', category:'Breakfast', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'set-dosa', name:'Set Dosa', category:'Breakfast', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'methi-thepla-2', name:'Methi Thepla', category:'Breakfast', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'fritata', name:'Fritata', category:'Breakfast', url:'https://cookieandkate.com/broccoli-cheddar-spinach-frittata/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'daliya-with-cranberries', name:'Daliya with cranberries', category:'Breakfast', url:'https://www.archanaskitchen.com/pistachio-cranberry-broken-wheat-pulao-recipe', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'dosa-bajra-banana-flower-adai', name:'Dosa - Bajra + Banana flower Adai', category:'Breakfast', url:'https://www.archanaskitchen.com/vazhaipoo-bajra-adai-recipe-banana-flower-pear-millet-crepe', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'foxtail-milet-palak-adai', name:'Foxtail Milet - Palak Adai', category:'Breakfast', url:'https://www.archanaskitchen.com/foxtail-millet-paruppu-adai-with-keerai-recipe-foxtail-millet-and-lentil-crepes-with-spinach-in-hindi', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'mixed-millet-adai', name:'Mixed Millet Adai', category:'Breakfast', url:'https://www.archanaskitchen.com/mixed-millet-and-lentils-adai-recipe-in-hindi', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'drumstick-leaves-dosa', name:'Drumstick leaves dosa', category:'Breakfast', url:'https://www.archanaskitchen.com/murungai-keerai-drum-stick-leaves-adai', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'quinoa-idli', name:'Quinoa Idli', category:'Breakfast', url:'https://www.archanaskitchen.com/spongy-quinoa-idli-for-a-healthy-breakfast', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'pudina-idli', name:'Pudina Idli', category:'Breakfast', url:'https://www.archanaskitchen.com/pudina-idli-recipe-mint-flavoured-idli', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'moong-dal-palak-chilla', name:'Moong Dal Palak Chilla', category:'Breakfast', url:'https://www.archanaskitchen.com/moong-dal-palak-cheela-recipe-yellow-lentil-and-spinach-crepes-in-hindi', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'mocha-overnight-oats', name:'Mocha Overnight Oats', category:'Breakfast', url:'https://www.everydayhealthyrecipes.com/mocha-overnight-oats/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'paneer-and-peas-chilla', name:'Paneer and Peas Chilla', category:'Breakfast', url:'https://www.archanaskitchen.com/cottage-cheese-and-peas-oatmeal-pancakes-recipe', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'multi-veg-multi-grain-pancake', name:'Multi veg multi grain pancake', category:'Breakfast', url:'https://www.archanaskitchen.com/healthy-vegetable-multigrain-pancakes', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'zucchini-chilla', name:'Zucchini Chilla', category:'Breakfast', url:'https://www.archanaskitchen.com/zucchini-pancake-recipe-with-tomato-salsa', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'carrot-coriander-paneer-pancake', name:'Carrot, Coriander Paneer Pancake', category:'Breakfast', url:'https://www.archanaskitchen.com/savoury-carrot-and-coriander-pancakes-recipe', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'vegetable-fritata', name:'Vegetable Fritata', category:'Breakfast', url:'https://www.archanaskitchen.com/mushroom-spinach-herbs-frittata-with-egg-white-recipe', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'savory-oats-recipe', name:'Savory Oats recipe', category:'Breakfast', url:'https://www.archanaskitchen.com/savory-oatmeal-bowl-with-sauteed-spinach-and-corn-recipe', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'oats-with-chettinad-mushroom-peas', name:'Oats with chettinad mushroom & Peas', category:'Breakfast', url:'https://www.archanaskitchen.com/savory-oatmeal-bowl-with-chettinad-mushroom-and-green-peas-stir-fry-recipe', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'methi-peas-quinoa', name:'Methi peas quinoa', category:'Breakfast', url:'https://www.archanaskitchen.com/methi-matar-pulao-recipe-spicy-fenugreek-leaf-green-pea-rice', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'ragi-and-oats', name:'Ragi and Oats', category:'Breakfast', url:'https://www.archanaskitchen.com/crunchy-ragi-and-oats-breakfast-bowl-recipe', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'methi-sooji-besan', name:'Methi Sooji Besan', category:'Breakfast', url:'https://hebbarskitchen.com/methi-ka-nashta-recipe-sooji-besan-methi/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'quinoa-oats-recipes', name:'Quinoa/Oats recipes', category:'Breakfast', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'quinoa-pear-bake', name:'Quinoa Pear Bake', category:'Breakfast', url:'https://www.tasteofhome.com/recipes/quinoa-pear-breakfast-bake/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'blueberry-cinnamon-quinoa', name:'Blueberry Cinnamon QUinoa', category:'Breakfast', url:'https://www.tasteofhome.com/recipes/spiced-blueberry-quinoa/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'quinoa-cutlet', name:'Quinoa Cutlet', category:'Breakfast', url:'https://www.tasteofhome.com/recipes/cumin-quinoa-patties/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'quinoa-breakfast-bowl', name:'Quinoa Breakfast Bowl', category:'Breakfast', url:'https://www.tasteofhome.com/recipes/loaded-quinoa-breakfast-bowl/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'garlic-mushroom-quinoa', name:'Garlic Mushroom Quinoa', category:'Breakfast', url:'https://damndelicious.net/2014/05/02/garlic-mushroom-quinoa/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'quinoa-egg-scramble', name:'Quinoa Egg Scramble', category:'Breakfast', url:'https://krollskorner.com/recipes/quinoa-egg-scramble/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'one-pot-spanish-quinoa', name:'One pot spanish quinoa', category:'Breakfast', url:'https://dishingouthealth.com/spanish-rice-and-beans-one-pot/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'rajma-pulao', name:'Rajma Pulao', category:'Breakfast', url:'https://everydaynourishingfoods.com/rajma-pulao-recipe-kidney-beans-rice/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'red-curry-paste-coconut-milk-pasta', name:'Red Curry paste coconut Milk Pasta', category:'Breakfast', url:'https://veganheaven.org/recipe/creamy-vegan-one-pot-pasta-asian-style/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'cheesy-broccoli-chickpeas-casserole', name:'Cheesy Broccoli Chickpeas casserole', category:'Breakfast', url:'https://flavorthemoments.com/one-pot-cheesy-broccoli-chickpea-rice-casserole/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'overnight-oats', name:'Overnight Oats', category:'Breakfast', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'coconut', name:'Coconut', category:'Breakfast', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'nutmeg-powder', name:'Nutmeg Powder', category:'Breakfast', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'goji-berries', name:'Goji berries', category:'Breakfast', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'shaved-chocolate-chocolate-chips', name:'Shaved Chocolate/Chocolate Chips', category:'Breakfast', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'coffee-powder', name:'Coffee powder', category:'Breakfast', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'cinnamon-powder', name:'Cinnamon Powder', category:'Breakfast', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'mashed-banana', name:'Mashed Banana', category:'Breakfast', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'peanut-almond-butter', name:'Peanut/Almond Butter', category:'Breakfast', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'matcha-powder', name:'Matcha powder', category:'Breakfast', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'pumpkin', name:'Pumpkin', category:'Breakfast', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'coconut-milk', name:'Coconut Milk', category:'Breakfast', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'shredded-carrot', name:'Shredded Carrot', category:'Breakfast', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'chia-pumpkin-sunflower-flax-seed', name:'Chia/Pumpkin/Sunflower/Flax seed', category:'Breakfast', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'chopped-walnuts-almonds-pistachio', name:'Chopped Walnuts/Almonds/PIstachio', category:'Breakfast', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'dates', name:'Dates', category:'Breakfast', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'banana-walnut-nutmeg', name:'Banana + Walnut + Nutmeg', category:'Breakfast', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'apple-cinnamon', name:'Apple + Cinnamon', category:'Breakfast', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'carrot-raisins', name:'Carrot + Raisins', category:'Breakfast', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'chocolate-coconut', name:'Chocolate + Coconut', category:'Breakfast', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'cocoa-coffee-powder-chips', name:'Cocoa+ Coffee powder+ Chips', category:'Breakfast', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'pumpkin-pumpkin-seeds-cranberries', name:'Pumpkin + Pumpkin Seeds + Cranberries', category:'Breakfast', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'coconut-milk-mango', name:'Coconut Milk + Mango', category:'Breakfast', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['breakfast'], servings:4},
+      {id:'rasam', name:'Rasam', category:'Soups', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['soups'], servings:4},
+      {id:'tomatto-soup', name:'Tomatto Soup', category:'Soups', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['soups'], servings:4},
+      {id:'broccoli-almond-soup', name:'Broccoli Almond Soup', category:'Soups', url:'https://www.archanaskitchen.com/broccoli-almond-soup-recipe', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['soups'], servings:4},
+      {id:'pumpkin-carrot-soup', name:'Pumpkin Carrot Soup', category:'Soups', url:'https://www.archanaskitchen.com/spicy-roasted-pumpkin-carrot-soup', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['soups'], servings:4},
+      {id:'tortilla-soup', name:'Tortilla Soup', category:'Soups', url:'https://www.tasteofhome.com/recipes/vegan-tortilla-soup/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['soups'], servings:4},
+      {id:'split-pea-soup', name:'Split Pea Soup', category:'Soups', url:'https://www.loveandlemons.com/yellow-split-pea-soup/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['soups'], servings:4},
+      {id:'cream-of-mushroom', name:'Cream of Mushroom', category:'Soups', url:'https://www.loveandlemons.com/cream-of-mushroom-soup/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['soups'], servings:4},
+      {id:'creamy-broccoli-soup', name:'Creamy Broccoli Soup', category:'Soups', url:'https://www.loveandlemons.com/vegan-broccoli-soup/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['soups'], servings:4},
+      {id:'carrot-ginger-soup', name:'Carrot Ginger Soup', category:'Soups', url:'https://www.loveandlemons.com/carrot-ginger-soup/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['soups'], servings:4},
+      {id:'roasted-red-pepper', name:'Roasted Red Pepper', category:'Soups', url:'https://www.loveandlemons.com/roasted-red-pepper-soup/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['soups'], servings:4},
+      {id:'roasted-cauliflower-soup', name:'Roasted Cauliflower soup', category:'Soups', url:'https://www.loveandlemons.com/cauliflower-soup/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['soups'], servings:4},
+      {id:'carrot-coconut-soup', name:'Carrot Coconut Soup', category:'Soups', url:'https://www.loveandlemons.com/carrot-coconut-soup/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['soups'], servings:4},
+      {id:'french-onion-soup', name:'French Onion Soup', category:'Soups', url:'https://www.loveandlemons.com/french-onion-soup/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['soups'], servings:4},
+      {id:'vegan-broccoli-soup', name:'Vegan Broccoli Soup', category:'Soups', url:'https://www.loveandlemons.com/vegan-broccoli-soup/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['soups'], servings:4},
+      {id:'beetroot-soup', name:'Beetroot Soup', category:'Soups', url:'https://www.archanaskitchen.com/indian-style-beetroot-soup-recipe', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['soups'], servings:4},
+      {id:'guacamole-soup', name:'Guacamole Soup', category:'Soups', url:'https://www.archanaskitchen.com/guacamole-soup-spiced-avocado-soup-recipe', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['soups'], servings:4},
+      {id:'thick-vegetable-soup', name:'Thick vegetable soup', category:'Soups', url:'https://www.indianhealthyrecipes.com/vegetable-soup/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['soups'], servings:4},
+      {id:'brocolli-jalapeno-soup', name:'Brocolli Jalapeno Soup', category:'Soups', url:'https://www.feastingathome.com/vegan-broccoli-soup/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['soups'], servings:4},
+      {id:'cauliflower-soup-in-coconut-milk', name:'Cauliflower Soup in Coconut Milk', category:'Soups', url:'https://www.feastingathome.com/curried-cauliflower-soup/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['soups'], servings:4},
+      {id:'yellow-zucchini-soup', name:'Yellow Zucchini Soup', category:'Soups', url:'https://www.feastingathome.com/curried-zucchini-soup/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['soups'], servings:4},
+      {id:'all-soup-recipes', name:'All soup recipes', category:'Soups', url:'https://www.feastingathome.com/cozy-fall-soups-to-savor-now/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['soups'], servings:4},
+      {id:'peas-soup', name:'Peas Soup', category:'Soups', url:'https://www.brit.co/easy-blender-pea-soup-recipe/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['soups'], servings:4},
+      {id:'roasted-cauliflower-creamy-soup', name:'Roasted Cauliflower Creamy Soup', category:'Soups', url:'https://cookieandkate.com/creamy-roasted-cauliflower-soup-recipe/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['soups'], servings:4},
+      {id:'spanish-omelette-with-avocado', name:'Spanish Omelette with Avocado', category:'Eggs', url:'https://www.archanaskitchen.com/mexican-style-omelette-with-avocado-dressing-recipe', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['eggs'], servings:4},
+      {id:'frittata', name:'Frittata', category:'Eggs', url:'https://www.loveandlemons.com/frittata-recipe/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['eggs'], servings:4},
+      {id:'egg-cheese-avocado-sandwich', name:'Egg cheese avocado sandwich', category:'Eggs', url:'https://www.brit.co/breakfast-sandwich/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['eggs'], servings:4},
+      {id:'devilled-eggs', name:'Devilled Eggs', category:'Eggs', url:'https://www.brit.co/smoked-salmon-deviled-eggs-recipe/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['eggs'], servings:4},
+      {id:'cloud-croque', name:'Cloud Croque', category:'Eggs', url:'https://www.brit.co/cloud-egg-croque-madame/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['eggs'], servings:4},
+      {id:'shakshuka', name:'Shakshuka', category:'Eggs', url:'https://www.brit.co/middle-eastern-recipes/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['eggs'], servings:4},
+      {id:'poached-egg-microwave-hack', name:'Poached Egg Microwave Hack', category:'Eggs', url:'https://www.brit.co/poached-egg-microwave-hack/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['eggs'], servings:4},
+      {id:'quinoa-mocha-energy-balls', name:'Quinoa Mocha Energy Balls', category:'Sweets & Snacks', url:'https://www.everydayhealthyrecipes.com/chocolate-mocha-peanut-butter-energy-balls-quinoa/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['healthy-sweets'], servings:4},
+      {id:'almond-butter-cookies-for-sarah', name:'Almond butter cookies for Sarah', category:'Sweets & Snacks', url:'https://sallysbakingaddiction.com/almond-butter-chocolate-chip-cookies/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['healthy-sweets'], servings:4},
+      {id:'vegetable-stock', name:'Vegetable stock', category:'Basics', url:'https://www.archanaskitchen.com/video-recipe-how-to-make-homemade-vegetable-stock', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['basics'], servings:4},
+      {id:'basil-pesto-2', name:'Basil Pesto', category:'Basics', url:'https://www.simplyrecipes.com/recipes/fresh_basil_pesto/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['basics'], servings:4},
+      {id:'palak-raita', name:'Palak Raita', category:'Raita & Sides', url:'https://www.archanaskitchen.com/palak-tambuli-udupi-style-spinach-tambli-recipe', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['raita'], servings:4},
+      {id:'bhindi-coconut-raita', name:'Bhindi Coconut Raita', category:'Raita & Sides', url:'https://www.archanaskitchen.com/kerala-style-vendakkai-pachadi', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['raita'], servings:4},
+      {id:'pudina-tambuli', name:'Pudina Tambuli', category:'Raita & Sides', url:'https://www.archanaskitchen.com/pudina-tambuli-recipe', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['raita'], servings:4},
+      {id:'coconut-2', name:'Coconut', category:'Chutneys', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['chutney'], servings:4},
+      {id:'peanutes', name:'Peanutes', category:'Chutneys', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['chutney'], servings:4},
+      {id:'tomatto-dhaniya', name:'Tomatto Dhaniya', category:'Chutneys', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['chutney'], servings:4},
+      {id:'pyaaj-tamatar-chutney', name:'Pyaaj Tamatar Chutney', category:'Chutneys', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['chutney'], servings:4},
+      {id:'burnt-tomatto-chutney', name:'Burnt Tomatto Chutney', category:'Chutneys', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['chutney'], servings:4},
+      {id:'humus', name:'Humus', category:'Chutneys', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['chutney'], servings:4},
+      {id:'cucumber-chutney', name:'Cucumber Chutney', category:'Chutneys', url:'https://www.tarladalal.com/quick-cucumber-chutney-11702r', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['chutney'], servings:4},
+      {id:'cheesy-mushrooms', name:'Cheesy Mushrooms', category:'Starters', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['starters'], servings:4},
+      {id:'moong-dal-tikki', name:'Moong Dal tikki', category:'Starters', url:'https://www.archanaskitchen.com/moong-dal-tikki-recipe', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['starters'], servings:4},
+      {id:'freshly-squeezed-juice', name:'Freshly Squeezed Juice', category:'Drinks', url:'', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['drinks/mocktails'], servings:4},
+      {id:'plum-soda', name:'Plum Soda', category:'Drinks', url:'https://frombowltosoul.com/sparkling-plum-drink-recipe/', ingredients:[], steps:[], nutrition:{kcal:0,protein:0,carbs:0,fat:0,fiber:0}, tags:['drinks/mocktails'], servings:4}
+    ];
+    const MEAL_TIMES = ['Breakfast 10AM', 'Kids Snack 11AM', 'Lunch 1:30PM', 'Snack 4PM', 'Dinner 7PM'];
+    const DAYS = ['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+    const state = {
+      currentWeek: 1, currentDay: 0, recipes: [...RECIPES],
+      mealPlan: { 1: { 0: ['idli-sambar', 'banana-pancakes', 'thai-green-curry', null, 'kale-quinoa-bowl'], 1: ['poha', null, 'masala-dosa', null, 'palak-dal'], 2: [null, null, null, null, null], 3: [null, null, null, null, null], 4: [null, null, null, null, null], 5: [null, null, null, null, null], 6: [null, null, null, null, null] }, 2: { 0: [null, null, null, null, null], 1: [null, null, null, null, null], 2: [null, null, null, null, null], 3: [null, null, null, null, null], 4: [null, null, null, null, null], 5: [null, null, null, null, null], 6: [null, null, null, null, null] }, 3: { 0: [null, null, null, null, null], 1: [null, null, null, null, null], 2: [null, null, null, null, null], 3: [null, null, null, null, null], 4: [null, null, null, null, null], 5: [null, null, null, null, null], 6: [null, null, null, null, null] } },
+      shoppingList: { 'Shop 1': [{ name: 'Broccoli', qty: 2, unit: 'heads', checked: false, badge: 'Produce' }, { name: 'Zucchini', qty: 2, unit: 'piece', checked: false, badge: 'Produce' }, { name: 'Bell pepper', qty: 3, unit: 'piece', checked: false, badge: 'Produce' }, { name: 'Kale', qty: 1, unit: 'bunch', checked: false, badge: 'Produce' }, { name: 'Spinach', qty: 300, unit: 'g', checked: false, badge: 'Produce' }, { name: 'Carrots', qty: 3, unit: 'piece', checked: false, badge: 'Produce' }, { name: 'Tomatoes', qty: 5, unit: 'piece', checked: false, badge: 'Produce' }, { name: 'Cucumber', qty: 3, unit: 'piece', checked: false, badge: 'Produce' }, { name: 'Onions', qty: 2, unit: 'kg', checked: false, badge: 'Produce' }, { name: 'Eggs', qty: 24, unit: 'piece', checked: false, badge: 'Dairy' }, { name: 'Yogurt', qty: 500, unit: 'g', checked: false, badge: 'Dairy' }, { name: 'Feta', qty: 200, unit: 'g', checked: false, badge: 'Dairy' } ], 'Shop 2': [{ name: 'Coconut milk', qty: 2, unit: 'cans', checked: false, badge: 'Groceries' }, { name: 'Green curry paste', qty: 1, unit: 'jar', checked: false, badge: 'Groceries' }, { name: 'Tamarind paste', qty: 200, unit: 'g', checked: false, badge: 'Groceries' } ], 'Dry Goods': [{ name: 'Rice', qty: 2, unit: 'kg', checked: false, badge: 'Grains' }, { name: 'Quinoa', qty: 500, unit: 'g', checked: false, badge: 'Grains' }, { name: 'Yellow dal', qty: 1, unit: 'kg', checked: false, badge: 'Legumes' }, { name: 'Urad dal', qty: 500, unit: 'g', checked: false, badge: 'Legumes' } ] },
+      pantry: [{ name: 'Olive Oil', amount: 500, unit: 'ml', category: 'Oils', expiry: '2026-12-31' }, { name: 'Garlic', amount: 12, unit: 'cloves', category: 'Produce', expiry: '2026-05-01' }, { name: 'Rice', amount: 2, unit: 'kg', category: 'Grains', expiry: '2027-06-30' }, { name: 'Cumin', amount: 100, unit: 'g', category: 'Spices', expiry: '2027-03-15' }, { name: 'Turmeric', amount: 100, unit: 'g', category: 'Spices', expiry: '2027-02-20' }, { name: 'Mustard Seeds', amount: 100, unit: 'g', category: 'Spices', expiry: '2027-01-10' }, { name: 'Ghee', amount: 500, unit: 'ml', category: 'Oils', expiry: '2026-08-15' }, { name: 'Urad Dal', amount: 1, unit: 'kg', category: 'Legumes', expiry: '2027-04-30' } ],
+      kitchenMode: { active: false, currentStep: 0, steps: [] }
+    };
+    function getRecipeById(id) { return state.recipes.find(r => r.id === id); }
+    function switchTab(tabName) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-button').forEach(el => el.classList.remove('active'));
+      document.getElementById(tabName).classList.add('active');
+      event.target.classList.add('active');
+      const titles = { 'meal-plan': 'Meal Plan', 'prep-guide': 'Prep Guide', 'shopping': 'Shopping List', 'recipe-book': 'Recipe Book', 'ai-extract': 'AI Extract', 'nutrition': 'Nutrition', 'pantry': 'Pantry' };
+      document.getElementById('page-title').textContent = titles[tabName];
+      if (tabName === 'recipe-book') renderRecipeBook();
+      if (tabName === 'nutrition') renderNutrition();
+      if (tabName === 'pantry') renderPantry();
+      if (tabName === 'shopping') renderShopping();
+    }
+    function setWeek(week) { state.currentWeek = week; document.querySelectorAll('.btn-selector').forEach((btn, idx) => { if (idx < 3) btn.classList.toggle('active', btn.textContent === `Week ${week}`); }); render(); }
+    function setDay(day) { state.currentDay = day; document.querySelectorAll('[data-day]').forEach(btn => { btn.classList.toggle('active', parseInt(btn.dataset.day) === day); }); render(); }
+    function render() { renderMealGrid(); renderPrepPanels(); updateProgress(); }
+    function renderMealGrid() {
+      const week = state.currentWeek, day = state.currentDay, meals = state.mealPlan[week][day];
+      const gridHtml = meals.map((recipeId, idx) => {
+        const recipe = recipeId ? getRecipeById(recipeId) : null, mealTime = MEAL_TIMES[idx];
+        return `<div class="meal-card" ondragover="highlightMealCard(event)" ondragleave="unhighlightMealCard(event)" ondrop="dropMeal(event, ${week}, ${day}, ${idx})"><div class="meal-time">${mealTime}</div><div class="meal-name">${recipe ? recipe.name : 'Empty'}</div>${recipe ? `<div class="meal-recipe">${recipe.name}</div><div class="meal-calories">${recipe.nutrition.kcal} kcal</div>` : '<div class="meal-empty">Drag recipe here</div>'}</div>`;
+      }).join('');
+      document.getElementById('meal-grid').innerHTML = gridHtml;
+    }
+    function highlightMealCard(e) { e.preventDefault(); e.currentTarget.classList.add('drop-target'); }
+    function unhighlightMealCard(e) { e.currentTarget.classList.remove('drop-target'); }
+    function dropMeal(e, week, day, mealIdx) { e.preventDefault(); e.currentTarget.classList.remove('drop-target'); const recipeId = e.dataTransfer.getData('text/plain'); if (state.recipes.find(r => r.id === recipeId)) { state.mealPlan[week][day][mealIdx] = recipeId; render(); } }
+    function renderPrepPanels() {
+      const morningSteps = ['Heat griddle for dosa', 'Boil water for sambar', 'Set table and utensils', 'Squeeze orange juice', 'Set out snack containers'];
+      const eveningSteps = ['Wash and prep tomorrow vegetables', 'Soak beans/grains if needed', 'Check pantry for tomorrow', 'Clean kitchen thoroughly', 'Plan breakfast next day'];
+      const renderSteps = (steps) => steps.map((step, idx) => `<div class="prep-step"><input type="checkbox" id="prep-${idx}" onchange="updateProgress()"><label for="prep-${idx}">${step}</label></div>`).join('');
+      document.getElementById('morning-prep-steps').innerHTML = renderSteps(morningSteps);
+      document.getElementById('evening-prep-steps').innerHTML = renderSteps(eveningSteps);
+    }
+    function updateProgress() { const meals = state.mealPlan[state.currentWeek][state.currentDay], mealsCount = meals.filter(m => m !== null).length; document.getElementById('meals-count').textContent = mealsCount; const allChecked = document.querySelectorAll('.prep-step input[type="checkbox"]:checked').length; document.getElementById('prep-done-count').textContent = allChecked; }
+    function renderRecipeBook() {
+      const searchTerm = (document.getElementById('recipe-search').value || '').toLowerCase();
+      const filterCat = document.getElementById('recipe-category-filter').value;
+      // Build category dropdown on first call
+      const dropdown = document.getElementById('recipe-category-filter');
+      if (dropdown.options.length <= 1) {
+        const cats = [...new Set(state.recipes.map(r => r.category))].sort();
+        cats.forEach(c => { const opt = document.createElement('option'); opt.value = c; opt.textContent = c; dropdown.appendChild(opt); });
+      }
+      // Filter recipes
+      let filtered = state.recipes;
+      if (filterCat !== 'all') filtered = filtered.filter(r => r.category === filterCat);
+      if (searchTerm) filtered = filtered.filter(r => r.name.toLowerCase().includes(searchTerm) || r.tags.some(t => t.toLowerCase().includes(searchTerm)) || r.category.toLowerCase().includes(searchTerm));
+      document.getElementById('recipe-count').textContent = filtered.length + ' of ' + state.recipes.length + ' recipes';
+      // Group by category
+      const grouped = {};
+      filtered.forEach(r => { if (!grouped[r.category]) grouped[r.category] = []; grouped[r.category].push(r); });
+      let html = '';
+      Object.keys(grouped).sort().forEach(category => {
+        const recipes = grouped[category];
+        html += `<div class="category-section"><div class="category-title">${category} <span style="font-size:12px;font-weight:400;color:var(--color-mid-brown)">(${recipes.length})</span></div><div class="recipe-grid">`;
+        recipes.forEach(recipe => {
+          const urlLink = recipe.url ? `<a class="recipe-link" href="${recipe.url}" target="_blank" onclick="event.stopPropagation()">🔗 View Recipe</a>` : '';
+          const kcalText = recipe.nutrition.kcal > 0 ? ` • ${recipe.nutrition.kcal} kcal` : '';
+          html += `<div class="recipe-item" draggable="true" ondragstart="dragRecipe(event, '${recipe.id}')">
+            <div class="recipe-name"><span class="grip-icon">⋮⋮</span>${recipe.name}</div>
+            <div class="recipe-meta">${recipe.servings} servings${kcalText}</div>
+            ${urlLink}
+            <div class="recipe-tags">${recipe.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}</div>
+            <div class="recipe-detail" id="detail-${recipe.id}">
+              ${recipe.ingredients.length > 0 ? `<div class="detail-section"><div class="detail-label">Ingredients</div><div class="detail-list">${recipe.ingredients.map(ing => '• ' + ing).join('<br>')}</div></div>` : ''}
+              ${recipe.steps.length > 0 ? `<div class="detail-section"><div class="detail-label">Steps</div><div class="detail-list">${recipe.steps.map((step, i) => (i+1) + '. ' + step).join('<br>')}</div></div>` : ''}
+            </div>
+          </div>`;
+        });
+        html += '</div></div>';
+      });
+      if (filtered.length === 0) html = '<div style="text-align:center;padding:40px;color:var(--color-mid-brown)">No recipes match your search.</div>';
+      document.getElementById('recipe-book-content').innerHTML = html;
+      document.querySelectorAll('.recipe-item').forEach(item => {
+        item.onclick = function(e) {
+          if (e.target.closest('.recipe-detail') || e.target.closest('a')) return;
+          const detail = this.querySelector('.recipe-detail');
+          const wasExpanded = detail.classList.contains('expanded');
+          document.querySelectorAll('.recipe-detail').forEach(d => d.classList.remove('expanded'));
+          if (!wasExpanded) detail.classList.add('expanded');
+        };
+      });
+    }
+    function dragRecipe(e, recipeId) { e.dataTransfer.effectAllowed = 'copy'; e.dataTransfer.setData('text/plain', recipeId); }
+    function extractRecipe() {
+      const text = document.getElementById('extract-input').value.toLowerCase();
+      if (!text) return;
+      const ingredientsMatch = text.match(/ingredients?:([\s\S]*?)(?:instructions?:|steps?:|$)/i);
+      const stepsMatch = text.match(/(?:instructions?|steps?):([\s\S]*?)$/i);
+      const ingredients = ingredientsMatch ? ingredientsMatch[1].split('\n').filter(l => l.trim()).map(l => l.trim().replace(/^[-•*]\s*/, '')) : [];
+      const steps = stepsMatch ? stepsMatch[1].split('\n').filter(l => l.trim()).map(l => l.trim().replace(/^[-•*0-9.]\s*/, '')) : [];
+      const name = text.split('\n')[0] || 'New Recipe';
+      const formHtml = `<div class="extract-section"><h3>Extracted Recipe</h3><div class="input-group"><label>Name</label><input type="text" id="extract-name" value="${name}"></div><div class="input-group"><label>Ingredients</label><ul class="ingredient-list" id="extract-ingredients">${ingredients.map(ing => `<li contenteditable="true">${ing || 'New'}</li>`).join('')}</ul></div><div class="input-group"><label>Steps</label><ul class="steps-list" id="extract-steps">${steps.map(step => `<li contenteditable="true">${step || 'New'}</li>`).join('')}</ul></div><div class="form-grid"><div class="input-group"><label>Servings</label><input type="number" id="extract-servings" value="4"></div><div class="input-group"><label>Calories</label><input type="number" id="extract-kcal" value="350"></div><div class="input-group"><label>Protein (g)</label><input type="number" id="extract-protein" value="15"></div><div class="input-group"><label>Carbs (g)</label><input type="number" id="extract-carbs" value="45"></div><div class="input-group"><label>Fat (g)</label><input type="number" id="extract-fat" value="10"></div><div class="input-group"><label>Fiber (g)</label><input type="number" id="extract-fiber" value="5"></div></div><button class="btn-primary" onclick="saveExtractedRecipe()">💾 Save to Recipe Book</button></div>`;
+      document.getElementById('extract-form-container').innerHTML = formHtml;
+    }
+    function saveExtractedRecipe() {
+      const id = 'recipe-' + Date.now(), name = document.getElementById('extract-name').value || 'New Recipe';
+      const ingredients = Array.from(document.querySelectorAll('#extract-ingredients li')).map(li => li.textContent);
+      const steps = Array.from(document.querySelectorAll('#extract-steps li')).map(li => li.textContent);
+      const servings = parseInt(document.getElementById('extract-servings').value) || 4;
+      const nutrition = { kcal: parseInt(document.getElementById('extract-kcal').value) || 350, protein: parseInt(document.getElementById('extract-protein').value) || 15, carbs: parseInt(document.getElementById('extract-carbs').value) || 45, fat: parseInt(document.getElementById('extract-fat').value) || 10, fiber: parseInt(document.getElementById('extract-fiber').value) || 5 };
+      state.recipes.push({ id, name, category: 'Custom', servings, ingredients, steps, nutrition, tags: ['custom'] });
+      document.getElementById('extract-input').value = '';
+      document.getElementById('extract-form-container').innerHTML = '';
+      switchTab('recipe-book');
+    }
+    function renderShopping() { Object.entries(state.shoppingList).forEach(([shop, items]) => { const sectionId = shop === 'Shop 1' ? 'shop-1' : shop === 'Shop 2' ? 'shop-2' : 'dry-goods'; const html = `<h3>${shop}</h3>${items.map((item, idx) => `<div class="shop-item ${item.checked ? 'done' : ''}"><input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleShopItem('${shop}', ${idx})"><span class="shop-item-name">${item.name}</span><span class="shop-item-qty">${item.qty} ${item.unit}</span><span class="shop-badge">${item.badge}</span></div>`).join('')}`; document.getElementById(sectionId).innerHTML = html; }); updateShoppingProgress(); }
+    function toggleShopItem(shop, idx) { state.shoppingList[shop][idx].checked = !state.shoppingList[shop][idx].checked; renderShopping(); }
+    function updateShoppingProgress() { let total = 0, checked = 0; Object.values(state.shoppingList).forEach(items => { items.forEach(item => { total++; if (item.checked) checked++; }); }); document.getElementById('shopping-checked').textContent = checked; document.getElementById('shopping-total').textContent = total; const percent = total > 0 ? (checked / total) * 100 : 0; document.getElementById('shopping-progress').style.width = percent + '%'; }
+    function renderNutrition() {
+      const day = state.currentDay, dayName = DAYS[day];
+      document.getElementById('nutrition-day').textContent = dayName;
+      const meals = state.mealPlan[state.currentWeek][day];
+      let totals = { kcal: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 };
+      meals.forEach(recipeId => { if (recipeId) { const recipe = getRecipeById(recipeId); if (recipe) Object.keys(totals).forEach(key => { totals[key] += recipe.nutrition[key]; }); } });
+      const goals = { kcal: 2200, protein: 120, carbs: 250, fat: 73, fiber: 35 };
+      const macroHtml = Object.entries(totals).map(([key, value]) => {
+        const goal = goals[key], percent = Math.min((value / goal) * 100, 100), unit = key === 'kcal' ? 'kcal' : 'g';
+        return `<div class="nutrition-item"><div class="nutrition-label">${key.charAt(0).toUpperCase() + key.slice(1)}</div><div class="nutrition-bar"><div class="nutrition-fill" style="width:${percent}%">${Math.round(percent)}%</div></div><div class="nutrition-stat"><span>${value} / ${goal} ${unit}</span></div></div>`;
+      }).join('');
+      document.getElementById('nutrition-macros').innerHTML = macroHtml;
+      let weeklyTotals = [];
+      for (let d = 0; d < 7; d++) { let dayTotal = 0; const dayMeals = state.mealPlan[state.currentWeek][d]; dayMeals.forEach(recipeId => { if (recipeId) { const recipe = getRecipeById(recipeId); if (recipe) dayTotal += recipe.nutrition.kcal; } }); weeklyTotals.push(dayTotal); }
+      const maxCal = Math.max(...weeklyTotals, 2200);
+      const chartHtml = weeklyTotals.map((total, idx) => { const percent = (total / maxCal) * 100; return `<div class="chart-bar" style="height:${percent}%;"><div class="chart-label">${DAYS[idx].substring(0, 3)}</div></div>`; }).join('');
+      document.getElementById('weekly-chart').innerHTML = chartHtml;
+    }
+    function addCustomMeal() {
+      const name = document.getElementById('custom-meal-name').value || 'Custom Meal';
+      const nutrition = { kcal: parseInt(document.getElementById('custom-calories').value) || 0, protein: parseInt(document.getElementById('custom-protein').value) || 0, carbs: parseInt(document.getElementById('custom-carbs').value) || 0, fat: parseInt(document.getElementById('custom-fat').value) || 0, fiber: parseInt(document.getElementById('custom-fiber').value) || 0 };
+      const week = state.currentWeek, day = state.currentDay, mealId = 'custom-' + Date.now();
+      state.recipes.push({ id: mealId, name, category: 'Custom', servings: 1, ingredients: [], steps: [], nutrition, tags: ['custom'] });
+      for (let i = 0; i < 5; i++) { if (state.mealPlan[week][day][i] === null) { state.mealPlan[week][day][i] = mealId; break; } }
+      document.getElementById('custom-meal-name').value = '';
+      Object.keys(nutrition).forEach(key => { document.getElementById('custom-' + key).value = 0; });
+      renderNutrition();
+    }
+    function renderPantry() {
+      const today = new Date().toISOString().split('T')[0], weekFromNow = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      const expiring = state.pantry.filter(item => item.expiry >= today && item.expiry <= weekFromNow);
+      let alertHtml = '';
+      if (expiring.length > 0) { alertHtml = `<div class="alert-box"><strong>⚠ ${expiring.length} item(s) expiring soon:</strong>${expiring.map(item => `${item.name} (expires ${item.expiry})`).join('<br>')}</div>`; }
+      document.getElementById('expiring-alert').innerHTML = alertHtml;
+      const categories = {};
+      state.pantry.forEach(item => { if (!categories[item.category]) categories[item.category] = []; categories[item.category].push(item); });
+      let inventoryHtml = '';
+      Object.entries(categories).forEach(([cat, items]) => { inventoryHtml += `<div class="pantry-category"><h3>${cat}</h3>${items.map((item, idx) => `<div class="pantry-item"><div class="pantry-item-info"><div class="pantry-item-name">${item.name}</div><div class="pantry-item-meta">${item.amount} ${item.unit} • ${item.expiry}</div></div><button class="btn-remove" onclick="removePantryItem(${idx})">Remove</button></div>`).join('')}</div>`; });
+      document.getElementById('pantry-inventory').innerHTML = inventoryHtml;
+      const canMake = state.recipes.filter(recipe => { return recipe.ingredients.every(ing => { const ingName = ing.split(' ')[0].toLowerCase(); return state.pantry.some(item => item.name.toLowerCase().includes(ingName)); }); });
+      const canMakeHtml = canMake.length > 0 ? canMake.map(r => `<li>${r.name}</li>`).join('') : '<li style="color:var(--color-mid-brown);opacity:0.6">No recipes match your pantry</li>';
+      document.getElementById('can-make-list').innerHTML = canMakeHtml;
+    }
+    function addPantryItem() { const name = document.getElementById('pantry-name').value, amount = parseFloat(document.getElementById('pantry-amount').value) || 1, unit = document.getElementById('pantry-unit').value, category = document.getElementById('pantry-category').value, expiry = document.getElementById('pantry-expiry').value || '2027-12-31'; if (name) { state.pantry.push({ name, amount, unit, category, expiry }); document.getElementById('pantry-name').value = ''; document.getElementById('pantry-amount').value = '1'; document.getElementById('pantry-expiry').value = ''; renderPantry(); } }
+    function removePantryItem(idx) { state.pantry.splice(idx, 1); renderPantry(); }
+    function toggleAccordion(header) { const body = header.nextElementSibling; body.classList.toggle('expanded'); }
+    function enterKitchenMode() { const week = state.currentWeek, day = state.currentDay, meals = state.mealPlan[week][day]; let allSteps = []; meals.forEach(recipeId => { if (recipeId) { const recipe = getRecipeById(recipeId); if (recipe) allSteps = allSteps.concat(recipe.steps); } }); state.kitchenMode.steps = allSteps; state.kitchenMode.currentStep = 0; state.kitchenMode.active = true; document.getElementById('kitchen-overlay').classList.add('active'); document.getElementById('kitchen-step-total').textContent = allSteps.length || 1; updateKitchenDisplay(); }
+    function exitKitchenMode() { state.kitchenMode.active = false; document.getElementById('kitchen-overlay').classList.remove('active'); }
+    function updateKitchenDisplay() { const steps = state.kitchenMode.steps, current = state.kitchenMode.currentStep, step = steps[current] || 'All done!'; document.getElementById('kitchen-current-step').textContent = step; document.getElementById('kitchen-step-num').textContent = current + 1; }
+    function kitchenNextStep() { if (state.kitchenMode.currentStep < state.kitchenMode.steps.length - 1) { state.kitchenMode.currentStep++; updateKitchenDisplay(); } else { exitKitchenMode(); } }
+    function kitchenPrevStep() { if (state.kitchenMode.currentStep > 0) { state.kitchenMode.currentStep--; updateKitchenDisplay(); } }
+    // ╔═══════════════════════════════════════════════════════════════╗
+    // ║  💾 LOCAL STORAGE + GOOGLE SHEETS SYNC                      ║
+    // ╚═══════════════════════════════════════════════════════════════╝
+
+    const STORAGE_KEY = 'prepwise_state';
+    const SYNC_CONFIG_KEY = 'prepwise_sync_config';
+
+    // --- Local Storage ---
+    function saveLocal() {
+      const data = {
+        mealPlan: state.mealPlan,
+        shoppingList: state.shoppingList,
+        pantry: state.pantry,
+        customRecipes: state.recipes.filter(r => !RECIPES.find(br => br.id === r.id)),
+        recipeOverrides: state.recipes.filter(r => {
+          const base = RECIPES.find(br => br.id === r.id);
+          if (!base) return false;
+          return JSON.stringify(r) !== JSON.stringify(base);
+        }).map(r => ({ id: r.id, ingredients: r.ingredients, steps: r.steps, nutrition: r.nutrition })),
+        savedAt: new Date().toISOString()
+      };
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch(e) { console.warn('LocalStorage save failed:', e); }
+    }
+
+    function loadLocal() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return false;
+        const data = JSON.parse(raw);
+        if (data.mealPlan) state.mealPlan = data.mealPlan;
+        if (data.shoppingList) state.shoppingList = data.shoppingList;
+        if (data.pantry) state.pantry = data.pantry;
+        if (data.customRecipes) data.customRecipes.forEach(cr => { if (!state.recipes.find(r => r.id === cr.id)) state.recipes.push(cr); });
+        if (data.recipeOverrides) data.recipeOverrides.forEach(ov => {
+          const r = state.recipes.find(x => x.id === ov.id);
+          if (r) { if (ov.ingredients && ov.ingredients.length) r.ingredients = ov.ingredients; if (ov.steps && ov.steps.length) r.steps = ov.steps; if (ov.nutrition) r.nutrition = ov.nutrition; }
+        });
+        return true;
+      } catch(e) { console.warn('LocalStorage load failed:', e); return false; }
+    }
+
+    // Auto-save on any state change (debounced)
+    let saveTimer = null;
+    function autoSave() { clearTimeout(saveTimer); saveTimer = setTimeout(saveLocal, 1000); }
+
+    // Wrap state changes with auto-save
+    const origSetWeek = setWeek, origSetDay = setDay;
+    setWeek = function(w) { origSetWeek(w); autoSave(); };
+    setDay = function(d) { origSetDay(d); autoSave(); };
+
+    // Patch dropMeal to auto-save
+    const origDropMeal = dropMeal;
+    dropMeal = function(e, week, day, mealIdx) { origDropMeal(e, week, day, mealIdx); autoSave(); };
+
+    // Patch shopping toggles
+    const origToggleShop = toggleShopItem;
+    toggleShopItem = function(shop, idx) { origToggleShop(shop, idx); autoSave(); };
+
+    // Patch pantry changes
+    const origAddPantry = addPantryItem, origRemovePantry = removePantryItem;
+    addPantryItem = function() { origAddPantry(); autoSave(); };
+    removePantryItem = function(idx) { origRemovePantry(idx); autoSave(); };
+
+    // Patch recipe saving
+    const origSaveExtracted = saveExtractedRecipe;
+    saveExtractedRecipe = function() { origSaveExtracted(); autoSave(); };
+
+    // --- Google Sheets API Sync (OAuth2 + API Key) ---
+    let gAccessToken = null;
+
+    function getSyncConfig() {
+      try { return JSON.parse(localStorage.getItem(SYNC_CONFIG_KEY)) || {}; } catch(e) { return {}; }
+    }
+    function saveSyncConfig(config) {
+      localStorage.setItem(SYNC_CONFIG_KEY, JSON.stringify(config));
+    }
+
+    function updateSyncStatus(text, color) {
+      const indicator = document.getElementById('sync-indicator');
+      const textEl = document.getElementById('sync-text');
+      indicator.style.color = color || 'rgba(255,255,255,0.6)';
+      textEl.textContent = text;
+    }
+
+    function syncLog(msg) {
+      const log = document.getElementById('sync-log');
+      if (log) {
+        const time = new Date().toLocaleTimeString();
+        log.innerHTML = `<div>[${time}] ${msg}</div>` + log.innerHTML;
+      }
+    }
+
+    function getAuthHeaders() {
+      const headers = { 'Content-Type': 'application/json' };
+      if (gAccessToken) headers['Authorization'] = 'Bearer ' + gAccessToken;
+      return headers;
+    }
+
+    async function sheetsAPI(method, range, data) {
+      const config = getSyncConfig();
+      if (!config.sheetId) throw new Error('Sheet ID not configured');
+      const base = `https://sheets.googleapis.com/v4/spreadsheets/${config.sheetId}`;
+      const keyParam = config.apiKey ? `key=${config.apiKey}` : '';
+
+      if (method === 'GET') {
+        const url = `${base}/values/${encodeURIComponent(range)}${keyParam ? '?' + keyParam : ''}`;
+        const res = await fetch(url, { headers: getAuthHeaders() });
+        if (!res.ok) throw new Error(`GET ${range}: ${res.status}`);
+        return await res.json();
+      } else if (method === 'PUT') {
+        const url = `${base}/values/${encodeURIComponent(range)}?valueInputOption=RAW${keyParam ? '&' + keyParam : ''}`;
+        const res = await fetch(url, {
+          method: 'PUT',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({ range, majorDimension: 'ROWS', values: data })
+        });
+        if (!res.ok) {
+          const errText = await res.text();
+          throw new Error(`PUT ${range}: ${res.status} — ${errText.substring(0, 150)}`);
+        }
+        return await res.json();
+      }
+    }
+
+    async function sheetsBatchUpdate(requests) {
+      const config = getSyncConfig();
+      const keyParam = config.apiKey ? `?key=${config.apiKey}` : '';
+      const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${config.sheetId}:batchUpdate${keyParam}`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ requests })
+      });
+      if (!res.ok) console.warn('batchUpdate warning:', await res.text());
+    }
+
+    function saveConfigAndSignIn() {
+      const clientId = document.getElementById('settings-client-id').value.trim();
+      const apiKey = document.getElementById('settings-api-key').value.trim();
+      const sheetId = document.getElementById('settings-sheet-id').value.trim();
+      const statusEl = document.getElementById('connection-status');
+      statusEl.style.display = 'block';
+
+      if (!clientId || !sheetId) {
+        statusEl.style.background = '#ffeaea'; statusEl.style.color = 'var(--color-red)';
+        statusEl.textContent = '❌ Please fill in OAuth Client ID and Sheet ID (API Key is optional but recommended).';
+        return;
+      }
+
+      saveSyncConfig({ clientId, apiKey, sheetId });
+
+      if (typeof google === 'undefined' || !google.accounts) {
+        statusEl.style.background = '#fff3e0'; statusEl.style.color = 'var(--color-mid-brown)';
+        statusEl.textContent = '⏳ Google Identity Services still loading... Try again in a moment.';
+        return;
+      }
+
+      statusEl.style.background = '#fff3e0'; statusEl.style.color = 'var(--color-mid-brown)';
+      statusEl.textContent = '⏳ Opening Google Sign-In...';
+
+      const tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: clientId,
+        scope: 'https://www.googleapis.com/auth/spreadsheets',
+        callback: async (response) => {
+          if (response.error) {
+            statusEl.style.background = '#ffeaea'; statusEl.style.color = 'var(--color-red)';
+            statusEl.textContent = '❌ Sign-in failed: ' + response.error;
+            updateSyncStatus('Auth failed', 'var(--color-red)');
+            return;
+          }
+          gAccessToken = response.access_token;
+          syncLog('Signed in with Google successfully');
+
+          // Test connection + create sheets
+          try {
+            const keyParam = apiKey ? `?key=${apiKey}` : '';
+            const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${sheetId}${keyParam}&fields=sheets.properties.title`, { headers: getAuthHeaders() });
+            const info = await res.json();
+            const sheetNames = (info.sheets || []).map(s => s.properties.title);
+
+            const required = ['MealPlan', 'Shopping', 'Pantry', 'CustomRecipes', 'RecipeEdits'];
+            const missing = required.filter(r => !sheetNames.includes(r));
+            if (missing.length > 0) {
+              const requests = missing.map(title => ({ addSheet: { properties: { title } } }));
+              await sheetsBatchUpdate(requests);
+              syncLog('Created sheets: ' + missing.join(', '));
+            }
+
+            statusEl.style.background = '#e8f5e9'; statusEl.style.color = 'var(--color-green)';
+            statusEl.textContent = '✅ Connected & signed in! All sync sheets ready.';
+            updateSyncStatus('Connected', '#4CAF50');
+            syncLog('Connection ready — sheets: ' + [...sheetNames, ...missing].join(', '));
+          } catch(e) {
+            statusEl.style.background = '#e8f5e9'; statusEl.style.color = 'var(--color-green)';
+            statusEl.textContent = '✅ Signed in! (Could not verify sheets — try Push/Pull to test.)';
+            updateSyncStatus('Connected', '#4CAF50');
+          }
+        }
+      });
+      tokenClient.requestAccessToken();
+    }
+
+    function disconnectSync() {
+      gAccessToken = null;
+      localStorage.removeItem(SYNC_CONFIG_KEY);
+      document.getElementById('settings-client-id').value = '';
+      document.getElementById('settings-api-key').value = '';
+      document.getElementById('settings-sheet-id').value = '';
+      const statusEl = document.getElementById('connection-status');
+      statusEl.style.display = 'block';
+      statusEl.style.background = '#f5f5f5';
+      statusEl.style.color = 'var(--color-mid-brown)';
+      statusEl.textContent = '🔌 Disconnected. Local data is still preserved.';
+      updateSyncStatus('Offline', 'rgba(255,255,255,0.6)');
+      syncLog('Disconnected from Google Sheets');
+    }
+
+    // --- PUSH: Write state to Google Sheets ---
+    async function syncPushAll() {
+      const config = getSyncConfig();
+      if (!config.apiKey || !config.sheetId) { syncLog('❌ Not connected — configure in Settings first'); return; }
+
+      updateSyncStatus('Pushing...', 'var(--color-saffron)');
+      syncLog('Starting push to Google Sheets...');
+
+      try {
+        // 1. Push Meal Plan
+        const mpRows = [['Week', 'Day', 'Slot1', 'Slot2', 'Slot3', 'Slot4', 'Slot5']];
+        Object.entries(state.mealPlan).forEach(([week, days]) => {
+          Object.entries(days).forEach(([day, meals]) => {
+            mpRows.push([week, DAYS[day], ...meals.map(m => m || '')]);
+          });
+        });
+        await sheetsAPI('PUT', 'MealPlan!A1', mpRows);
+        syncLog('✅ Meal Plan pushed');
+
+        // 2. Push Shopping List
+        const shopRows = [['Store', 'Item', 'Qty', 'Unit', 'Checked', 'Badge']];
+        Object.entries(state.shoppingList).forEach(([store, items]) => {
+          items.forEach(item => {
+            shopRows.push([store, item.name, item.qty, item.unit, item.checked ? 'TRUE' : 'FALSE', item.badge]);
+          });
+        });
+        await sheetsAPI('PUT', 'Shopping!A1', shopRows);
+        syncLog('✅ Shopping List pushed');
+
+        // 3. Push Pantry
+        const pantryRows = [['Name', 'Amount', 'Unit', 'Category', 'Expiry']];
+        state.pantry.forEach(item => {
+          pantryRows.push([item.name, item.amount, item.unit, item.category, item.expiry]);
+        });
+        await sheetsAPI('PUT', 'Pantry!A1', pantryRows);
+        syncLog('✅ Pantry pushed');
+
+        // 4. Push Custom Recipes
+        const customRecipes = state.recipes.filter(r => !RECIPES.find(br => br.id === r.id));
+        const crRows = [['ID', 'Name', 'Category', 'Servings', 'Ingredients', 'Steps', 'Kcal', 'Protein', 'Carbs', 'Fat', 'Fiber', 'Tags']];
+        customRecipes.forEach(r => {
+          crRows.push([r.id, r.name, r.category, r.servings, JSON.stringify(r.ingredients), JSON.stringify(r.steps), r.nutrition.kcal, r.nutrition.protein, r.nutrition.carbs, r.nutrition.fat, r.nutrition.fiber, r.tags.join(',')]);
+        });
+        await sheetsAPI('PUT', 'CustomRecipes!A1', crRows);
+        syncLog('✅ Custom Recipes pushed (' + customRecipes.length + ')');
+
+        // 5. Push Recipe Edits (overrides to base recipes)
+        const edits = state.recipes.filter(r => {
+          const base = RECIPES.find(br => br.id === r.id);
+          return base && (r.ingredients.length > 0 || r.steps.length > 0) && (JSON.stringify(r.ingredients) !== JSON.stringify(base.ingredients) || JSON.stringify(r.steps) !== JSON.stringify(base.steps));
+        });
+        const editRows = [['ID', 'Ingredients', 'Steps', 'Kcal', 'Protein', 'Carbs', 'Fat', 'Fiber']];
+        edits.forEach(r => {
+          editRows.push([r.id, JSON.stringify(r.ingredients), JSON.stringify(r.steps), r.nutrition.kcal, r.nutrition.protein, r.nutrition.carbs, r.nutrition.fat, r.nutrition.fiber]);
+        });
+        await sheetsAPI('PUT', 'RecipeEdits!A1', editRows);
+        syncLog('✅ Recipe Edits pushed (' + edits.length + ')');
+
+        updateSyncStatus('Synced ✓', '#4CAF50');
+        syncLog('Push complete!');
+      } catch(e) {
+        updateSyncStatus('Push failed', 'var(--color-red)');
+        syncLog('❌ Push error: ' + e.message);
+      }
+    }
+
+    // --- PULL: Read state from Google Sheets ---
+    async function syncPullAll() {
+      const config = getSyncConfig();
+      if (!config.apiKey || !config.sheetId) { syncLog('❌ Not connected'); return; }
+
+      updateSyncStatus('Pulling...', 'var(--color-saffron)');
+      syncLog('Starting pull from Google Sheets...');
+
+      try {
+        // 1. Pull Meal Plan
+        try {
+          const mpData = await sheetsAPI('GET', 'MealPlan!A2:G100');
+          if (mpData.values && mpData.values.length > 0) {
+            mpData.values.forEach(row => {
+              const week = parseInt(row[0]);
+              const dayIdx = DAYS.indexOf(row[1]);
+              if (week && dayIdx >= 0 && state.mealPlan[week]) {
+                state.mealPlan[week][dayIdx] = [row[2]||null, row[3]||null, row[4]||null, row[5]||null, row[6]||null].map(v => v === '' ? null : v);
+              }
+            });
+            syncLog('✅ Meal Plan pulled');
+          }
+        } catch(e) { syncLog('⚠️ Meal Plan: ' + e.message); }
+
+        // 2. Pull Shopping List
+        try {
+          const shopData = await sheetsAPI('GET', 'Shopping!A2:F200');
+          if (shopData.values && shopData.values.length > 0) {
+            const newShop = {};
+            shopData.values.forEach(row => {
+              const store = row[0];
+              if (!newShop[store]) newShop[store] = [];
+              newShop[store].push({ name: row[1], qty: parseFloat(row[2]) || 0, unit: row[3] || '', checked: row[4] === 'TRUE', badge: row[5] || '' });
+            });
+            state.shoppingList = newShop;
+            syncLog('✅ Shopping List pulled');
+          }
+        } catch(e) { syncLog('⚠️ Shopping: ' + e.message); }
+
+        // 3. Pull Pantry
+        try {
+          const pantryData = await sheetsAPI('GET', 'Pantry!A2:E200');
+          if (pantryData.values && pantryData.values.length > 0) {
+            state.pantry = pantryData.values.map(row => ({
+              name: row[0], amount: parseFloat(row[1]) || 0, unit: row[2] || '', category: row[3] || '', expiry: row[4] || ''
+            }));
+            syncLog('✅ Pantry pulled');
+          }
+        } catch(e) { syncLog('⚠️ Pantry: ' + e.message); }
+
+        // 4. Pull Custom Recipes
+        try {
+          const crData = await sheetsAPI('GET', 'CustomRecipes!A2:L500');
+          if (crData.values && crData.values.length > 0) {
+            crData.values.forEach(row => {
+              const id = row[0];
+              if (!state.recipes.find(r => r.id === id)) {
+                state.recipes.push({
+                  id, name: row[1], category: row[2] || 'Custom', servings: parseInt(row[3]) || 4,
+                  ingredients: JSON.parse(row[4] || '[]'), steps: JSON.parse(row[5] || '[]'),
+                  nutrition: { kcal: parseInt(row[6])||0, protein: parseInt(row[7])||0, carbs: parseInt(row[8])||0, fat: parseInt(row[9])||0, fiber: parseInt(row[10])||0 },
+                  tags: (row[11]||'custom').split(','), url: ''
+                });
+              }
+            });
+            syncLog('✅ Custom Recipes pulled');
+          }
+        } catch(e) { syncLog('⚠️ Custom Recipes: ' + e.message); }
+
+        // 5. Pull Recipe Edits
+        try {
+          const editData = await sheetsAPI('GET', 'RecipeEdits!A2:H500');
+          if (editData.values && editData.values.length > 0) {
+            editData.values.forEach(row => {
+              const r = state.recipes.find(x => x.id === row[0]);
+              if (r) {
+                try { r.ingredients = JSON.parse(row[1] || '[]'); } catch(e) {}
+                try { r.steps = JSON.parse(row[2] || '[]'); } catch(e) {}
+                r.nutrition = { kcal: parseInt(row[3])||0, protein: parseInt(row[4])||0, carbs: parseInt(row[5])||0, fat: parseInt(row[6])||0, fiber: parseInt(row[7])||0 };
+              }
+            });
+            syncLog('✅ Recipe Edits pulled');
+          }
+        } catch(e) { syncLog('⚠️ Recipe Edits: ' + e.message); }
+
+        saveLocal();
+        render();
+        renderRecipeBook();
+        renderShopping();
+        renderNutrition();
+        renderPantry();
+        updateSyncStatus('Synced ✓', '#4CAF50');
+        syncLog('Pull complete!');
+      } catch(e) {
+        updateSyncStatus('Pull failed', 'var(--color-red)');
+        syncLog('❌ Pull error: ' + e.message);
+      }
+    }
+
+    // --- Export / Import JSON ---
+    function exportLocalData() {
+      saveLocal();
+      const raw = localStorage.getItem(STORAGE_KEY);
+      const blob = new Blob([raw], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'prepwise-backup-' + new Date().toISOString().split('T')[0] + '.json';
+      a.click();
+      syncLog('📥 Data exported as JSON backup');
+    }
+
+    function importLocalData(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = JSON.parse(e.target.result);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+          loadLocal();
+          render(); renderRecipeBook(); renderShopping(); renderNutrition(); renderPantry();
+          syncLog('📤 Data imported from backup file');
+          alert('Data imported successfully! The page will reload.');
+          location.reload();
+        } catch(err) {
+          alert('Invalid backup file: ' + err.message);
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    // --- INIT ---
+    // Load saved data from localStorage
+    const hadSavedData = loadLocal();
+    if (hadSavedData) { console.log('PrepWise: Loaded saved data from localStorage'); }
+
+    // Restore sync config to settings fields
+    const syncConfig = getSyncConfig();
+    if (syncConfig.clientId || syncConfig.apiKey) {
+      if (syncConfig.clientId) document.getElementById('settings-client-id').value = syncConfig.clientId;
+      if (syncConfig.apiKey) document.getElementById('settings-api-key').value = syncConfig.apiKey;
+      if (syncConfig.sheetId) document.getElementById('settings-sheet-id').value = syncConfig.sheetId;
+      updateSyncStatus('Saved (sign in to sync)', 'var(--color-saffron)');
+    }
+
+    // Update switchTab to include settings
+    const origSwitchTab = switchTab;
+    switchTab = function(tabName) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-button').forEach(el => el.classList.remove('active'));
+      document.getElementById(tabName).classList.add('active');
+      if (event && event.target) event.target.classList.add('active');
+      const titles = { 'meal-plan': 'Meal Plan', 'prep-guide': 'Prep Guide', 'shopping': 'Shopping List', 'recipe-book': 'Recipe Book', 'ai-extract': 'AI Extract', 'nutrition': 'Nutrition', 'pantry': 'Pantry', 'settings': 'Settings' };
+      document.getElementById('page-title').textContent = titles[tabName] || tabName;
+      if (tabName === 'meal-plan') render();
+      if (tabName === 'recipe-book') renderRecipeBook();
+      if (tabName === 'shopping') renderShopping();
+      if (tabName === 'nutrition') renderNutrition();
+      if (tabName === 'pantry') renderPantry();
+    };
+
+    render();
+  </script>
+</body>
+</html>
