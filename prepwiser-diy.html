@@ -232,13 +232,22 @@
           <button class="btn-secondary" onclick="if(confirm('Clear all meals for Week '+state.currentWeek+'?')){clearWeek();}" style="font-size:12px;padding:6px 14px;color:var(--color-red);border-color:var(--color-red)">🗑 Clear Week</button>
         </div>
         <div id="week-grid-container"></div>
+        <div style="display:flex;gap:6px;margin:20px 0 12px;flex-wrap:wrap;align-items:center">
+          <span class="selector-label">Day Prep:</span>
+          <div id="meal-plan-day-tabs" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+        </div>
         <div class="prep-panel"><h3>🌅 Morning Prep</h3><div id="morning-prep-steps"></div></div>
         <div class="prep-panel"><h3>🌙 Evening Prep</h3><div id="evening-prep-steps"></div></div>
       </div>
       <div id="prep-guide" class="tab-content">
-        <div class="accordion"><div class="accordion-header" onclick="toggleAccordion(this)">Saturday Big Cook</div><div class="accordion-body"><ol><li>Soak rice and urad dal for idli/dosa batter (4-6 hours)</li><li>Chop and prep all vegetables</li><li>Make sambar base</li><li>Grind idli/dosa batter and ferment overnight</li><li>Cook large batch of rajma masala</li><li>Label and date all containers</li></ol></div></div>
-        <div class="accordion"><div class="accordion-header" onclick="toggleAccordion(this)">Rolling Prep (Mon-Fri)</div><div class="accordion-body"><ol><li>Each evening: prep fresh salad components</li><li>Cook grains fresh each morning</li><li>Grill or roast fresh proteins</li><li>Make fresh dosa for breakfast</li><li>Refresh any prepped vegetables</li></ol></div></div>
-        <div class="accordion"><div class="accordion-header" onclick="toggleAccordion(this)">Evening Prep (After Dinner)</div><div class="accordion-body"><ol><li>Rinse and store lunch containers</li><li>Prep snack components for next day</li><li>Make overnight oats if needed</li><li>Set out any items to thaw</li><li>Check tomorrow's schedule</li></ol></div></div>
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
+          <span class="selector-label">Week</span>
+          <button class="btn-selector active" onclick="setPrepWeek(1)">Week 1</button>
+          <button class="btn-selector" onclick="setPrepWeek(2)">Week 2</button>
+          <button class="btn-selector" onclick="setPrepWeek(3)">Week 3</button>
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap" id="prep-day-tabs"></div>
+        <div id="prep-guide-content"></div>
       </div>
       <div id="shopping" class="tab-content">
         <div class="progress-section"><div class="progress-header">Shopping Progress</div><div class="progress-fill"><div class="progress-done" id="shopping-progress" style="width:0%"></div></div><div style="font-size:12px;color:var(--color-mid-brown);margin-top:6px"><span id="shopping-checked">0</span> / <span id="shopping-total">0</span> items checked</div></div>
@@ -1213,12 +1222,348 @@
       render();
       autoSave();
     }
+    // ╔═══════════════════════════════════════════════════════════════╗
+    // ║  PREP GUIDE — Day-specific, meal-aligned prep steps          ║
+    // ╚═══════════════════════════════════════════════════════════════╝
+
+    let prepWeek = 1, prepDay = 0;
+    const SHORT_DAYS_PREP = ['Sat', 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+    const FULL_DAYS_PREP = ['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+
+    // Cook schedule: Sat=big cook, Sun/Mon/Wed/Fri=zero cook, Tue=cook, Thu=cook
+    const COOK_DAYS = { 0: 'big-cook', 1: 'zero', 2: 'zero', 3: 'cook', 4: 'zero', 5: 'cook', 6: 'zero' };
+
+    // Saturday big cook data per week
+    const SAT_PREP = {
+      1: {
+        phase1: [
+          { text: 'Mung sprouting — rinse, jar, damp cloth', type: 'passive' },
+          { text: 'Dosa/idli batter soak — rice + moong dal + urad dal separately', type: 'passive' },
+          { text: 'Grain batches — brown rice + quinoa in separate pots, simmer unattended', type: 'passive' },
+          { text: 'Frittata batter — sauté onion+spinach+moringa, cool, whisk into eggs, refrigerate unbaked', type: 'passive' },
+          { text: 'Seed grinding — pumpkin + sunflower + flaxseed powders', type: 'active' }
+        ],
+        phase2: [
+          { text: 'Boiled eggs batch (10 min → done)', type: 'passive' },
+          { text: 'Rajma — pressure cook unattended', type: 'passive' },
+          { text: 'Beet + carrot batch steam', type: 'passive' },
+          { text: 'Sambar base', type: 'active' },
+          { text: 'Besan chilla batter', type: 'active' },
+          { text: 'Roti Dough Batch 1 (Sat/Sun/Mon)', type: 'active' },
+          { text: 'Salad dressings — 3 jars', type: 'active' },
+          { text: 'Smoothie packs — 7 freezer bags labelled by day (fruit only, add liquid+whey fresh)', type: 'active' },
+          { text: 'Onion-tomato masala base — caramelise 4 large onions (15-18 min), add GG paste + tomatoes + spices. Divide into 3 portions', type: 'active' },
+          { text: 'Palak purée base — blanch 500g spinach, ice bath, blitz smooth, freeze in cubes', type: 'active' },
+          { text: 'Green chutney — coriander + mint + chilli + lemon + cumin, jar + freeze extras', type: 'active' },
+          { text: 'Tomato-ginger chutney (dosa sides)', type: 'active' },
+          { text: 'Raita base — 3 varieties: plain / cucumber / pudina-palak', type: 'active' },
+          { text: 'Ginger-garlic paste (100g each + oil, fridge 2 weeks)', type: 'active' },
+          { text: 'Paneer — heat full-fat milk, curdle with lemon, strain, press 1.5-2 hrs (100g for Mon frittata)', type: 'active' },
+          { text: 'Veg chopping: onions diced · capsicum diced · cucumber sliced · broccoli florets · kale stripped · spinach washed · sweet potato cubed in cold water · tomatoes for Mon-Tue only', type: 'active' }
+        ]
+      },
+      2: {
+        phase1: [
+          { text: 'Mung sprouting — rinse, jar, damp cloth', type: 'passive' },
+          { text: 'Ragi dosa batter soak — ragi flour + moong dal + urad dal', type: 'passive' },
+          { text: 'Grain batches — brown rice + quinoa, simmer unattended', type: 'passive' },
+          { text: 'Seed grinding — pumpkin + sunflower + flaxseed powders', type: 'active' }
+        ],
+        phase2: [
+          { text: 'Boiled eggs batch (10 min → done)', type: 'passive' },
+          { text: 'Rajma + Methi Dal — pressure cook unattended', type: 'passive' },
+          { text: 'Beet + carrot batch steam', type: 'passive' },
+          { text: 'Sambar base', type: 'active' },
+          { text: 'Besan chilla batter', type: 'active' },
+          { text: 'Roti Dough Batch 1 (Sat/Sun/Mon)', type: 'active' },
+          { text: 'Salad dressings — 3 jars', type: 'active' },
+          { text: 'Smoothie packs — 7 freezer bags labelled by day', type: 'active' },
+          { text: 'Onion-tomato masala base — caramelise 4 large onions, divide into 3 portions', type: 'active' },
+          { text: 'Palak purée base — blanch, blitz, freeze in cubes', type: 'active' },
+          { text: 'Green chutney — jar + freeze extras', type: 'active' },
+          { text: 'Tomato-ginger chutney', type: 'active' },
+          { text: 'Raita base — 3 varieties', type: 'active' },
+          { text: 'Ginger-garlic paste', type: 'active' },
+          { text: 'Paneer — 250g for Tue Egg Muffins + Sat Kofta', type: 'active' },
+          { text: 'Veg chopping: onions · capsicum · cucumber · broccoli · kale · spinach · sweet potato · butternut squash · tomatoes Mon-Tue', type: 'active' }
+        ]
+      },
+      3: {
+        phase1: [
+          { text: 'Mung sprouting — rinse, jar, damp cloth', type: 'passive' },
+          { text: 'Dosa batter soak — idli rice + moong dal + urad dal + pumpkin seed (ferment 10-12 hrs)', type: 'passive' },
+          { text: 'Grain batches — brown rice + quinoa, simmer unattended', type: 'passive' },
+          { text: 'Seed grinding — pumpkin + sunflower + flaxseed powders', type: 'active' }
+        ],
+        phase2: [
+          { text: 'Boiled eggs batch (10 min → done)', type: 'passive' },
+          { text: 'Kerala Stew + Palak Dal — pressure cook unattended', type: 'passive' },
+          { text: 'Beet + carrot batch steam', type: 'passive' },
+          { text: 'Sambar base', type: 'active' },
+          { text: 'Roti Dough Batch 1', type: 'active' },
+          { text: 'Salad dressings — 3 jars', type: 'active' },
+          { text: 'Smoothie packs — 7 freezer bags', type: 'active' },
+          { text: 'Onion-tomato masala base — divide into 3 portions', type: 'active' },
+          { text: 'Palak purée base — blanch, blitz, freeze', type: 'active' },
+          { text: 'Green chutney + Tomato-ginger chutney', type: 'active' },
+          { text: 'Raita base — 3 varieties', type: 'active' },
+          { text: 'Ginger-garlic paste', type: 'active' },
+          { text: 'Paneer — 700g (Tue Paneer do Pyaza + Wed Bhurji)', type: 'active' },
+          { text: 'Poha prep — flatten rice ready for Sat breakfast', type: 'active' },
+          { text: 'Veg chopping: onions · capsicum · cucumber · kale · spinach · zucchini · sweet potato · tomatoes Mon-Tue', type: 'active' }
+        ]
+      }
+    };
+
+    // Tuesday cook tasks per week
+    const TUE_PREP = {
+      1: ['Smoky Baingan-Chana Bharta — roast eggplants, mash, cook with chana', 'Roti Dough Batch 2 (Tue/Wed/Thu)', 'Top up onion-tomato masala for Thu-Fri', 'Re-slice cucumber + prep fresh salad veg for Tue-Thu', 'Lobiya curry base for Wed'],
+      2: ['Quinoa Amaranth Khichdi base — pressure cook quinoa + amaranth + moong dal', 'Roti Dough Batch 2', 'Top up onion-tomato masala', 'Stir-fry okra for Mon lunch (if not done)', 'Re-slice cucumber + fresh veg for Tue-Thu', 'Lauki prep — wash and cut fresh for Thu (not before)'],
+      3: ['Paneer do Pyaza — make fresh with 300g paneer', 'Roti Dough Batch 2', 'Top up onion-tomato masala', 'Re-slice cucumber + fresh veg for Tue-Thu', 'Turai prep for Wed — wash and slice fresh']
+    };
+
+    // Thursday cook tasks per week
+    const THU_PREP = {
+      1: ['Chole — soak overnight Wed, pressure cook + masala', 'Roti Dough Batch 3 (Thu/Fri)', 'Thursday evening salad prep', 'Friday comfort prep: soak cashews for Paneer Lababdar gravy', 'Make fresh paneer — 400g for Fri Lababdar', 'Dice potatoes for Fri Aloo-Palak-Methi, store in cold water overnight'],
+      2: ['Lauki Sabzi + Toor Dal', 'Roti Dough Batch 3', 'Thursday evening salad prep', 'Bhindi Sabzi for Fri lunch — wash and dry okra thoroughly', 'Pav Bhaji Khichdi prep: chop mixed veg for Fri'],
+      3: ['Stuffed Capsicum Curry — make stuffing with 250g paneer, hollow capsicums, cook in gravy', 'Roti Dough Batch 3', 'Thursday evening salad prep', 'Make fresh paneer — 450g (200g for Thu Stuffed Caps + 250g Fri Toasties)', 'Fri comfort prep: slice cheese, prep tomato soup base', 'Dice potatoes for Fri Aloo-Palak-Methi, store in cold water overnight']
+    };
+
+    // Generate morning prep steps dynamically based on the day's meals
+    function getMorningPrep(week, day) {
+      const meals = state.mealPlan[week][day];
+      const steps = [];
+      const bfast = meals[0] ? getRecipeById(meals[0]) : null;
+      const lunch = meals[2] ? getRecipeById(meals[2]) : null;
+
+      if (day === 1) { // Sunday
+        steps.push('Eating out for breakfast — enjoy!');
+      } else if (bfast) {
+        const bn = bfast.name.toLowerCase();
+        if (bn.includes('idli') || bn.includes('dosa')) steps.push('Grind batter to consistency (thin with water for dosa)', 'Heat griddle/tawa for dosa/idli', 'Warm sambar, prepare fresh tadka (ghee + mustard + curry leaves)');
+        else if (bn.includes('chilla')) steps.push('Mix chilla batter to pouring consistency', 'Heat flat tawa on medium', 'Prepare green chutney side');
+        else if (bn.includes('egg') || bn.includes('bhurji') || bn.includes('scramble') || bn.includes('omelette')) steps.push('Crack and whisk eggs', 'Dice capsicum, tomato, onion for bhurji/scramble', 'Toast bread slices');
+        else if (bn.includes('frittata') || bn.includes('muffin')) steps.push('Preheat oven to 180°C', 'Prepare frittata/muffin batter from fridge', 'Bake 18-25 min (fully passive)');
+        else if (bn.includes('poha')) steps.push('Rinse and soak poha flattened rice 2 min', 'Prep peas, peanuts, curry leaves for tempering');
+        else if (bn.includes('avocado')) steps.push('Toast seeded bread', 'Mash avocado with lemon, salt, chilli', 'Poach eggs in simmering water 3 min');
+        else if (bn.includes('ragi roti')) steps.push('Knead ragi roti dough with warm water', 'Set out curd and green chutney');
+        else if (bn.includes('dalia')) steps.push('Pressure cook dalia with carrots, peas, capsicum', 'Temper with cumin and curry leaves');
+        else if (bn.includes('paneer bhurji')) steps.push('Crumble paneer from fridge', 'Sauté onion, capsicum, tomato for bhurji', 'Toast bread');
+        else steps.push(`Prepare breakfast: ${bfast.name}`);
+        steps.push('Set out: 5 almonds + 1 walnut + 1 dried fig per adult');
+        if (day === 2) steps.push('Brazil nuts for hypothyroid adult (Monday only)');
+      }
+
+      // Kids AM snack
+      const kidsAM = meals[1] ? getRecipeById(meals[1]) : null;
+      if (kidsAM) {
+        if (kidsAM.name.toLowerCase().includes('pancake')) steps.push('Banana Pancakes: mash 2 bananas + 2 eggs + oat flour + cinnamon, cook on griddle');
+        else steps.push(`Kids AM snack: wash and prep ${kidsAM.name}`);
+      }
+
+      // Lunch prep
+      if (lunch) {
+        const ln = lunch.name.toLowerCase();
+        if (day === 0 || day === 3 || day === 5) { // Cook days (Sat/Tue/Thu)
+          steps.push(`Cook lunch: ${lunch.name} (see cook session above)`);
+        } else {
+          // Zero-cook days: assemble, reheat
+          if (ln.includes('rajma') || ln.includes('lobia') || ln.includes('chole') || ln.includes('dal') || ln.includes('curry') || ln.includes('stew')) {
+            steps.push(`Reheat ${lunch.name} from batch — add fresh tadka before serving`);
+          } else if (ln.includes('dosa')) {
+            steps.push(`Make fresh dosa from batter — thin with water, spread on hot tawa`);
+          } else {
+            steps.push(`Assemble lunch: ${lunch.name}`);
+          }
+          steps.push('Steam or sauté fresh side vegetables');
+          steps.push('Cook/reheat grain base (rice, quinoa, or warm roti)');
+        }
+      }
+
+      return steps;
+    }
+
+    // Generate evening prep steps dynamically
+    function getEveningPrep(week, day) {
+      const meals = state.mealPlan[week][day];
+      const steps = [];
+      const evening = meals[4] ? getRecipeById(meals[4]) : null;
+      const kidsPM = meals[3] ? getRecipeById(meals[3]) : null;
+
+      // Kids PM snack
+      if (kidsPM) steps.push(`Kids PM snack: wash and prep ${kidsPM.name}`);
+
+      // 4:30 PM chai
+      steps.push('Masala chai for adults (~4:30 PM)');
+
+      // Evening meal
+      if (evening) {
+        const en = evening.name.toLowerCase();
+        if (en.includes('bowl') || en.includes('salad') || en.includes('greens') || en.includes('kale') || en.includes('romaine') || en.includes('arugula') || en.includes('spinach') || en.includes('watercress') || en.includes('rocket')) {
+          steps.push('Roast vegetables for salad bowl (sweet potato / beets / carrots — 25 min at 200°C)');
+          steps.push(`Assemble bowl: ${evening.name}`);
+          steps.push('Drizzle dressing from batch jar');
+        } else if (en.includes('soup')) {
+          steps.push(`Cook ${evening.name} — blend smooth`);
+          steps.push('Toast seeded bread on the side');
+        } else if (en.includes('comfort') || en.includes('lababdar') || en.includes('khichdi') || en.includes('toasties') || en.includes('pav bhaji')) {
+          steps.push(`🌟 Comfort Night! Cook: ${evening.name}`);
+          steps.push('Kids get pasta or simpler version');
+        } else {
+          steps.push(`Prepare evening: ${evening.name}`);
+        }
+      }
+
+      // Smoothie
+      steps.push('Blend evening smoothie: take labelled fruit pack from freezer + add fresh liquid base + whey isolate + Greek yogurt');
+
+      // Kids dinner at 7 PM
+      steps.push("Kids dinner (7 PM): reheat today's lunch");
+      steps.push('Kids bedtime milk or smoothie');
+
+      // Tomorrow prep
+      if (day < 6) {
+        const tomorrowMeals = state.mealPlan[week][day + 1];
+        const tBfast = tomorrowMeals[0] ? getRecipeById(tomorrowMeals[0]) : null;
+        if (tBfast) {
+          const tbn = tBfast.name.toLowerCase();
+          if (tbn.includes('idli') || tbn.includes('dosa')) steps.push('Check batter fermentation for tomorrow morning');
+          if (tbn.includes('frittata')) steps.push('Frittata batter is in fridge — bake straight from cold tomorrow');
+        }
+        steps.push('Check and prep fresh salad veg for tomorrow if needed');
+      }
+
+      return steps;
+    }
+
+    function selectPrepDay(d) {
+      state.currentDay = d;
+      renderPrepPanels();
+    }
+
     function renderPrepPanels() {
-      const morningSteps = ['Heat griddle for dosa', 'Boil water for sambar', 'Set table and utensils', 'Squeeze orange juice', 'Set out snack containers'];
-      const eveningSteps = ['Wash and prep tomorrow vegetables', 'Soak beans/grains if needed', 'Check pantry for tomorrow', 'Clean kitchen thoroughly', 'Plan breakfast next day'];
-      const renderSteps = (steps) => steps.map((step, idx) => `<div class="prep-step"><input type="checkbox" id="prep-${idx}" onchange="updateProgress()"><label for="prep-${idx}">${step}</label></div>`).join('');
-      document.getElementById('morning-prep-steps').innerHTML = renderSteps(morningSteps);
-      document.getElementById('evening-prep-steps').innerHTML = renderSteps(eveningSteps);
+      const week = state.currentWeek;
+      const day = state.currentDay;
+
+      // Day tabs
+      const dayTabsEl = document.getElementById('meal-plan-day-tabs');
+      if (dayTabsEl) {
+        dayTabsEl.innerHTML = SHORT_DAYS_PREP.map((dn, i) =>
+          `<button class="btn-selector${i === day ? ' active' : ''}" onclick="selectPrepDay(${i})" style="font-size:12px;padding:6px 10px">${dn}</button>`
+        ).join('');
+      }
+
+      const renderSteps = (steps, prefix) => steps.map((step, idx) => `<div class="prep-step"><input type="checkbox" id="${prefix}-${idx}" onchange="updateProgress()"><label for="${prefix}-${idx}">${step}</label></div>`).join('');
+      document.getElementById('morning-prep-steps').innerHTML = renderSteps(getMorningPrep(week, day), 'am');
+      document.getElementById('evening-prep-steps').innerHTML = renderSteps(getEveningPrep(week, day), 'pm');
+    }
+
+    // ── Prep Guide Tab ──
+
+    function setPrepWeek(w) {
+      prepWeek = w;
+      prepDay = 0;
+      document.querySelectorAll('#prep-guide .btn-selector').forEach(btn => btn.classList.toggle('active', btn.textContent === `Week ${w}`));
+      renderPrepGuide();
+    }
+
+    function setPrepDay(d) {
+      prepDay = d;
+      renderPrepGuide();
+    }
+
+    function renderPrepGuide() {
+      // Day tabs
+      const tabsEl = document.getElementById('prep-day-tabs');
+      tabsEl.innerHTML = SHORT_DAYS_PREP.map((dn, i) => {
+        const cookType = COOK_DAYS[i];
+        const badge = cookType === 'big-cook' ? ' 🔥' : cookType === 'cook' ? ' 🍳' : '';
+        return `<button class="btn-selector${prepDay === i ? ' active' : ''}" onclick="setPrepDay(${i})" style="font-size:12px">${dn}${badge}</button>`;
+      }).join('');
+
+      const d = prepDay;
+      const w = prepWeek;
+      let html = '';
+
+      // Day header
+      const cookType = COOK_DAYS[d];
+      const cookLabel = cookType === 'big-cook' ? '🔥 Big Batch Cook Day' : cookType === 'cook' ? '🍳 Cook Day' : '✨ Zero-Cook Day (assemble & reheat)';
+      html += `<div style="background:white;border:1px solid var(--color-border);border-radius:var(--border-radius);padding:16px;margin-bottom:16px">`;
+      html += `<h2 style="font-size:18px;font-weight:700;color:var(--color-deep-brown);margin-bottom:4px">${FULL_DAYS_PREP[d]} — Week ${w}</h2>`;
+      html += `<p style="font-size:13px;color:var(--color-saffron);font-weight:600">${cookLabel}</p>`;
+      html += `</div>`;
+
+      // Today's meals summary
+      const meals = state.mealPlan[w][d];
+      html += `<div style="background:white;border:1px solid var(--color-border);border-radius:var(--border-radius);padding:16px;margin-bottom:16px">`;
+      html += `<h3 style="font-size:14px;font-weight:700;color:var(--color-deep-brown);margin-bottom:12px;border-bottom:2px solid var(--color-saffron);padding-bottom:8px">Today's Meals</h3>`;
+      const slotLabels = ['☀ Breakfast 10AM', '🍌 Kids Snack 11AM', '🥗 Lunch 1:30PM', '🍎 Kids Snack 5PM', '🌿 Evening 5:30PM'];
+      for (let m = 0; m < 5; m++) {
+        const r = meals[m] ? getRecipeById(meals[m]) : null;
+        html += `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(0,0,0,0.06);font-size:13px">`;
+        html += `<span style="color:var(--color-mid-brown)">${slotLabels[m]}</span>`;
+        html += `<span style="font-weight:600;color:var(--color-deep-brown)">${r ? r.name : '—'}</span>`;
+        html += `</div>`;
+      }
+      html += `</div>`;
+
+      // Saturday big cook
+      if (d === 0 && SAT_PREP[w]) {
+        const sat = SAT_PREP[w];
+        html += `<div class="accordion"><div class="accordion-header" onclick="toggleAccordion(this)">🟢 Phase 1 — First 15 min (start then walk away)</div><div class="accordion-body expanded">`;
+        sat.phase1.forEach(item => {
+          html += `<div class="prep-step" style="border-left:3px solid ${item.type === 'passive' ? 'var(--color-green)' : 'var(--color-saffron)'};padding-left:10px;margin-bottom:8px"><label style="font-size:13px">${item.type === 'passive' ? '🟢' : '🟡'} ${item.text}</label></div>`;
+        });
+        html += `</div></div>`;
+
+        html += `<div class="accordion"><div class="accordion-header" onclick="toggleAccordion(this)">🟡 Phase 2 — Main session (~90 min)</div><div class="accordion-body expanded">`;
+        sat.phase2.forEach(item => {
+          html += `<div class="prep-step" style="border-left:3px solid ${item.type === 'passive' ? 'var(--color-green)' : 'var(--color-saffron)'};padding-left:10px;margin-bottom:8px"><label style="font-size:13px">${item.type === 'passive' ? '🟢' : '🟡'} ${item.text}</label></div>`;
+        });
+        html += `</div></div>`;
+      }
+
+      // Tuesday cook
+      if (d === 3 && TUE_PREP[w]) {
+        html += `<div class="accordion"><div class="accordion-header" onclick="toggleAccordion(this)">🍳 Tuesday Cook Session (90–120 min)</div><div class="accordion-body expanded"><ol>`;
+        TUE_PREP[w].forEach(step => { html += `<li>${step}</li>`; });
+        html += `</ol></div></div>`;
+      }
+
+      // Thursday cook
+      if (d === 5 && THU_PREP[w]) {
+        html += `<div class="accordion"><div class="accordion-header" onclick="toggleAccordion(this)">🍳 Thursday Cook Session (90–120 min)</div><div class="accordion-body expanded"><ol>`;
+        THU_PREP[w].forEach(step => { html += `<li>${step}</li>`; });
+        html += `</ol></div></div>`;
+      }
+
+      // Morning prep
+      const morningSteps = getMorningPrep(w, d);
+      html += `<div class="prep-panel"><h3>🌅 Morning Prep</h3>`;
+      morningSteps.forEach((step, i) => {
+        html += `<div class="prep-step"><input type="checkbox" id="pg-am-${i}"><label for="pg-am-${i}">${step}</label></div>`;
+      });
+      html += `</div>`;
+
+      // Evening prep
+      const eveningSteps = getEveningPrep(w, d);
+      html += `<div class="prep-panel"><h3>🌙 Evening Prep</h3>`;
+      eveningSteps.forEach((step, i) => {
+        html += `<div class="prep-step"><input type="checkbox" id="pg-pm-${i}"><label for="pg-pm-${i}">${step}</label></div>`;
+      });
+      html += `</div>`;
+
+      // Friday special
+      if (d === 6) {
+        const comfortMeals = { 1: 'Paneer Lababdar + enriched roti + kachumber', 2: 'Pav Bhaji Khichdi + butter + sliced onion + lemon', 3: 'Cheesy Toasties 4 ways + tomato soup dip + side salad' };
+        html += `<div style="background:linear-gradient(135deg,#FFF8E1,#FDF8F2);border:2px solid var(--color-saffron);border-radius:var(--border-radius);padding:16px;margin-top:16px">`;
+        html += `<h3 style="font-size:16px;color:var(--color-saffron);margin-bottom:8px">🌟 Friday Comfort Night</h3>`;
+        html += `<p style="font-size:14px;font-weight:600;color:var(--color-deep-brown)">${comfortMeals[w] || ''}</p>`;
+        html += `<p style="font-size:12px;color:var(--color-mid-brown);margin-top:6px">Kids get pasta or a simpler version</p>`;
+        html += `</div>`;
+      }
+
+      document.getElementById('prep-guide-content').innerHTML = html;
     }
     function updateProgress() {
       let totalMeals = 0;
@@ -1772,6 +2117,10 @@
     }
 
     // --- INIT ---
+    // Auto-select today's day (Sat=0, Sun=1, Mon=2, ... Fri=6)
+    const jsDay = new Date().getDay(); // 0=Sun, 6=Sat
+    state.currentDay = jsDay === 0 ? 1 : jsDay === 6 ? 0 : jsDay + 1;
+
     // Load saved data from localStorage
     const hadSavedData = loadLocal();
     if (hadSavedData) { console.log('PrepWise: Loaded saved data from localStorage'); }
@@ -1795,6 +2144,7 @@
       const titles = { 'meal-plan': 'Meal Plan', 'prep-guide': 'Prep Guide', 'shopping': 'Shopping List', 'recipe-book': 'Recipe Book', 'ai-extract': 'AI Extract', 'nutrition': 'Nutrition', 'pantry': 'Pantry', 'settings': 'Settings' };
       document.getElementById('page-title').textContent = titles[tabName] || tabName;
       if (tabName === 'meal-plan') render();
+      if (tabName === 'prep-guide') renderPrepGuide();
       if (tabName === 'recipe-book') renderRecipeBook();
       if (tabName === 'shopping') renderShopping();
       if (tabName === 'nutrition') renderNutrition();
