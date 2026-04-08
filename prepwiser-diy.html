@@ -227,8 +227,8 @@
           </div>
         </div>
         <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
-          <p style="font-size:12px;color:var(--color-mid-brown);margin:0">Drag recipes from the <strong>Recipe Book</strong> tab and drop them onto any slot below.</p>
-          <button class="btn-secondary" onclick="generateMealPlan()" style="margin-left:auto;font-size:12px;padding:6px 14px">✨ Auto-Generate Plan</button>
+          <p style="font-size:12px;color:var(--color-mid-brown);margin:0">Click any cell to type &amp; search recipes, or drag from <strong>Recipe Book</strong>. Pre-populated from your master plan — fully editable.</p>
+          <button class="btn-secondary" onclick="generateMealPlan()" style="margin-left:auto;font-size:12px;padding:6px 14px">✨ Tenets & Preset Plan</button>
           <button class="btn-secondary" onclick="if(confirm('Clear all meals for Week '+state.currentWeek+'?')){clearWeek();}" style="font-size:12px;padding:6px 14px;color:var(--color-red);border-color:var(--color-red)">🗑 Clear Week</button>
         </div>
         <div id="week-grid-container"></div>
@@ -380,9 +380,12 @@
         <button class="tenets-close" onclick="closeTenets()">&times;</button>
       </div>
       <div class="tenets-body" id="tenets-body"></div>
-      <div class="tenets-footer">
-        <button class="btn-secondary" onclick="closeTenets()">Cancel</button>
-        <button class="btn-primary" onclick="generateFromTenets()">✨ Generate Plan</button>
+      <div class="tenets-footer" style="justify-content:space-between">
+        <button class="btn-secondary" onclick="resetAllWeeksToPreset()" style="font-size:12px;color:var(--color-saffron);border-color:var(--color-saffron)">↺ Reset All 3 Weeks</button>
+        <div style="display:flex;gap:10px">
+          <button class="btn-secondary" onclick="closeTenets()">Cancel</button>
+          <button class="btn-primary" onclick="generateFromTenets()">✨ Load Preset for Week</button>
+        </div>
       </div>
     </div>
   </div>
@@ -741,37 +744,46 @@
     ];
     const MEAL_TIMES = ['Breakfast 10AM', 'Kids Snack 11AM', 'Lunch 1:30PM', 'Snack 4PM', 'Dinner 7PM'];
     const DAYS = ['Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+
+    // Master 3-week preset plan (from PrepWise Master Reconstruction Prompt)
+    const PRESET_MEAL_PLAN = {
+      1: {
+        0: ['idli-sambhar', 'banana-pancakes-kids', 'thai-green-veg-curry-rice', 'fruit-clementine', 'quinoa-beetroot-kale-bowl'],
+        1: ['eating-out-brunch', 'fruit-clementine', 'dosa', 'fruit-apple', 'romaine-sweet-potato-tofu-bowl'],
+        2: ['frittata', 'fruit-clementine', 'rajma', 'fruit-raspberries', 'kale-chickpea-avocado-sweet-potato-bowl'],
+        3: ['besan-chilla', 'fruit-apple', 'smoky-baingan-chana-bharta', 'fruit-raspberries', 'avocado-salad'],
+        4: ['egg-bhurji-dill-toast', 'fruit-clementine', 'lobia', 'fruit-blackberries', 'feta-salad'],
+        5: ['moong-dal-palak-chilla', 'fruit-apple', 'kabuli-chole', 'fruit-blackberries', 'chole-salad'],
+        6: ['egg-mushroom-scramble-toast', 'fruit-banana', 'palak-methi-soya', 'fruit-clementine', 'paneer-lababdar-roti']
+      },
+      2: {
+        0: ['dosa', 'banana-pancakes-kids', 'quinoa-spinach-salad', 'fruit-blueberries', 'paneer-tofu-kofta-curry'],
+        1: ['eating-out-brunch', 'fruit-mango', 'dosa', 'fruit-banana', 'sprouts-salad'],
+        2: ['green-moong-chilla', 'fruit-blueberries', 'palak-daal', 'fruit-mango', 'romaine-sweet-potato-tofu-bowl'],
+        3: ['spinach-egg-muffins', 'fruit-mango', 'quinoa-amaranth-khichdi', 'fruit-cherries', 'avocado-salad'],
+        4: ['besan-chilla-2', 'fruit-pear', 'quinoa-moong-khichdi', 'fruit-blueberries', 'chole-salad'],
+        5: ['egg-bhurji-dill-toast', 'fruit-banana', 'lauki', 'fruit-cherries', 'feta-salad'],
+        6: ['avocado-toast-poached-eggs', 'fruit-pear', 'rajma', 'fruit-mango', 'pav-bhaji-khichdi']
+      },
+      3: {
+        0: ['poha', 'banana-pancakes-kids', 'kerala-veg-stew-rice', 'fruit-strawberries', 'feta-salad'],
+        1: ['eating-out-brunch', 'fruit-strawberries', 'dosa', 'fruit-grapes', 'creamy-broccoli-soup'],
+        2: ['namkin-daliya', 'fruit-banana', 'palak-daal', 'fruit-grapes', 'sprouts-salad'],
+        3: ['masala-omelette-toast', 'fruit-strawberries', 'paneer-do-pyaza-roti', 'fruit-raspberries', 'beetroot-greens-salad'],
+        4: ['paneer-bhurji', 'fruit-grapes', 'taroi', 'fruit-pineapple', 'chole-salad'],
+        5: ['ragi-roti', 'fruit-banana', 'stuffed-capsicum-curry-rice', 'fruit-pineapple', 'kale-with-hummus'],
+        6: ['creamy-scrambled-eggs-beet-mushroom', 'fruit-pineapple', 'palak-methi-soya', 'fruit-grapes', 'cheesy-toasties-tomato-soup']
+      }
+    };
+    // Deep-clone preset plan for mutable state
+    function clonePreset() {
+      const copy = {};
+      for (const w of [1,2,3]) { copy[w] = {}; for (let d = 0; d < 7; d++) copy[w][d] = [...PRESET_MEAL_PLAN[w][d]]; }
+      return copy;
+    }
     const state = {
       currentWeek: 1, currentDay: 0, recipes: [...RECIPES],
-      mealPlan: {
-        1: {
-          0: ['idli-sambhar', 'banana-pancakes-kids', 'thai-green-veg-curry-rice', 'fruit-clementine', 'quinoa-beetroot-kale-bowl'],
-          1: ['eating-out-brunch', 'fruit-clementine', 'dosa', 'fruit-apple', 'romaine-sweet-potato-tofu-bowl'],
-          2: ['frittata', 'fruit-clementine', 'rajma', 'fruit-raspberries', 'kale-chickpea-avocado-sweet-potato-bowl'],
-          3: ['besan-chilla', 'fruit-apple', 'smoky-baingan-chana-bharta', 'fruit-raspberries', 'avocado-salad'],
-          4: ['egg-bhurji-dill-toast', 'fruit-clementine', 'lobia', 'fruit-blackberries', 'feta-salad'],
-          5: ['moong-dal-palak-chilla', 'fruit-apple', 'kabuli-chole', 'fruit-blackberries', 'chole-salad'],
-          6: ['egg-mushroom-scramble-toast', 'fruit-banana', 'palak-methi-soya', 'fruit-clementine', 'paneer-lababdar-roti']
-        },
-        2: {
-          0: ['dosa', 'banana-pancakes-kids', 'quinoa-spinach-salad', 'fruit-blueberries', 'paneer-tofu-kofta-curry'],
-          1: ['eating-out-brunch', 'fruit-mango', 'dosa', 'fruit-banana', 'sprouts-salad'],
-          2: ['green-moong-chilla', 'fruit-blueberries', 'palak-daal', 'fruit-mango', 'romaine-sweet-potato-tofu-bowl'],
-          3: ['spinach-egg-muffins', 'fruit-mango', 'quinoa-amaranth-khichdi', 'fruit-cherries', 'avocado-salad'],
-          4: ['besan-chilla-2', 'fruit-pear', 'quinoa-moong-khichdi', 'fruit-blueberries', 'chole-salad'],
-          5: ['egg-bhurji-dill-toast', 'fruit-banana', 'lauki', 'fruit-cherries', 'feta-salad'],
-          6: ['avocado-toast-poached-eggs', 'fruit-pear', 'rajma', 'fruit-mango', 'pav-bhaji-khichdi']
-        },
-        3: {
-          0: ['poha', 'banana-pancakes-kids', 'kerala-veg-stew-rice', 'fruit-strawberries', 'feta-salad'],
-          1: ['eating-out-brunch', 'fruit-strawberries', 'dosa', 'fruit-grapes', 'creamy-broccoli-soup'],
-          2: ['namkin-daliya', 'fruit-banana', 'palak-daal', 'fruit-grapes', 'sprouts-salad'],
-          3: ['masala-omelette-toast', 'fruit-strawberries', 'paneer-do-pyaza-roti', 'fruit-raspberries', 'beetroot-greens-salad'],
-          4: ['paneer-bhurji', 'fruit-grapes', 'taroi', 'fruit-pineapple', 'chole-salad'],
-          5: ['ragi-roti', 'fruit-banana', 'stuffed-capsicum-curry-rice', 'fruit-pineapple', 'kale-with-hummus'],
-          6: ['creamy-scrambled-eggs-beet-mushroom', 'fruit-pineapple', 'palak-methi-soya', 'fruit-grapes', 'cheesy-toasties-tomato-soup']
-        }
-      },
+      mealPlan: clonePreset(),
       shoppingList: { 'Shop 1': [{ name: 'Broccoli', qty: 2, unit: 'heads', checked: false, badge: 'Produce' }, { name: 'Zucchini', qty: 2, unit: 'piece', checked: false, badge: 'Produce' }, { name: 'Bell pepper', qty: 3, unit: 'piece', checked: false, badge: 'Produce' }, { name: 'Kale', qty: 1, unit: 'bunch', checked: false, badge: 'Produce' }, { name: 'Spinach', qty: 300, unit: 'g', checked: false, badge: 'Produce' }, { name: 'Carrots', qty: 3, unit: 'piece', checked: false, badge: 'Produce' }, { name: 'Tomatoes', qty: 5, unit: 'piece', checked: false, badge: 'Produce' }, { name: 'Cucumber', qty: 3, unit: 'piece', checked: false, badge: 'Produce' }, { name: 'Onions', qty: 2, unit: 'kg', checked: false, badge: 'Produce' }, { name: 'Eggs', qty: 24, unit: 'piece', checked: false, badge: 'Dairy' }, { name: 'Yogurt', qty: 500, unit: 'g', checked: false, badge: 'Dairy' }, { name: 'Feta', qty: 200, unit: 'g', checked: false, badge: 'Dairy' } ], 'Shop 2': [{ name: 'Coconut milk', qty: 2, unit: 'cans', checked: false, badge: 'Groceries' }, { name: 'Green curry paste', qty: 1, unit: 'jar', checked: false, badge: 'Groceries' }, { name: 'Tamarind paste', qty: 200, unit: 'g', checked: false, badge: 'Groceries' } ], 'Dry Goods': [{ name: 'Rice', qty: 2, unit: 'kg', checked: false, badge: 'Grains' }, { name: 'Quinoa', qty: 500, unit: 'g', checked: false, badge: 'Grains' }, { name: 'Yellow dal', qty: 1, unit: 'kg', checked: false, badge: 'Legumes' }, { name: 'Urad dal', qty: 500, unit: 'g', checked: false, badge: 'Legumes' } ] },
       pantry: [{ name: 'Olive Oil', amount: 500, unit: 'ml', category: 'Oils', expiry: '2026-12-31' }, { name: 'Garlic', amount: 12, unit: 'cloves', category: 'Produce', expiry: '2026-05-01' }, { name: 'Rice', amount: 2, unit: 'kg', category: 'Grains', expiry: '2027-06-30' }, { name: 'Cumin', amount: 100, unit: 'g', category: 'Spices', expiry: '2027-03-15' }, { name: 'Turmeric', amount: 100, unit: 'g', category: 'Spices', expiry: '2027-02-20' }, { name: 'Mustard Seeds', amount: 100, unit: 'g', category: 'Spices', expiry: '2027-01-10' }, { name: 'Ghee', amount: 500, unit: 'ml', category: 'Oils', expiry: '2026-08-15' }, { name: 'Urad Dal', amount: 1, unit: 'kg', category: 'Legumes', expiry: '2027-04-30' } ],
       kitchenMode: { active: false, currentStep: 0, steps: [] }
@@ -1130,94 +1142,19 @@
     }
 
     function generateFromTenets() {
-      const tenets = readTenetsFromModal();
+      readTenetsFromModal(); // Save any tenet changes
+      // Load preset plan for current week (deep copy so edits don't mutate PRESET)
       const week = state.currentWeek;
-
-      // Build category pools
-      const breakfasts = state.recipes.filter(r => r.category === 'Breakfast');
-      const curries = state.recipes.filter(r => ['Gravies & Curries', 'Dry Vegetables', 'Dal Specialties', 'Fancy Meals'].includes(r.category));
-      const dals = state.recipes.filter(r => ['Dals & Breads', 'Dal Specialties'].includes(r.category));
-      const eggs = state.recipes.filter(r => r.category === 'Eggs');
-      const salads = state.recipes.filter(r => r.category === 'Salads');
-      const soups = state.recipes.filter(r => r.category === 'Soups');
-      const snacks = state.recipes.filter(r => ['Sweets & Snacks', 'Starters', 'Sandwiches & Wraps', 'Drinks'].includes(r.category));
-      const sides = state.recipes.filter(r => ['Raita & Sides', 'Chutneys'].includes(r.category));
-
-      const used = new Set();
-      function pick(arr) {
-        const avail = isRuleOn(tenets, 'no-repeats') ? arr.filter(r => !used.has(r.id)) : arr;
-        if (avail.length === 0) return arr.length > 0 ? arr[Math.floor(Math.random() * arr.length)] : null;
-        const r = avail[Math.floor(Math.random() * avail.length)];
-        used.add(r.id);
-        return r;
-      }
-
       for (let d = 0; d < 7; d++) {
-        const dayName = DAYS[d]; // Saturday=0, Sunday=1, ...Friday=6
-
-        // SLOT 0: Breakfast (10 AM)
-        if (d === 1 && isRuleOn(tenets, 'sunday-eatout')) {
-          // Sunday eating out - find or use placeholder
-          const eatout = state.recipes.find(r => r.name.toLowerCase().includes('eat')) || pick(breakfasts.length > 0 ? breakfasts : state.recipes);
-          state.mealPlan[week][d][0] = eatout ? eatout.id : null;
-        } else {
-          const pool = breakfasts.length > 0 ? breakfasts : state.recipes;
-          const b = pick(pool);
-          state.mealPlan[week][d][0] = b ? b.id : null;
-        }
-
-        // SLOT 1: Kids AM Snack (11 AM)
-        if (d === 0 && isRuleOn(tenets, 'saturday-pancakes')) {
-          const pancake = state.recipes.find(r => r.name.toLowerCase().includes('pancake'));
-          state.mealPlan[week][d][1] = pancake ? pancake.id : (pick(snacks) || {}).id || null;
-        } else {
-          // Fruit snack - use snack/side items
-          const s = pick(snacks.length > 0 ? snacks : sides.length > 0 ? sides : state.recipes);
-          state.mealPlan[week][d][1] = s ? s.id : null;
-        }
-
-        // SLOT 2: Lunch (1:30 PM) — main curry/dal + implied grain
-        if (isRuleOn(tenets, 'lunch-dal') && d % 2 === 0 && dals.length > 0) {
-          const dal = pick(dals);
-          state.mealPlan[week][d][2] = dal ? dal.id : null;
-        } else {
-          const main = pick(curries.length > 0 ? curries : state.recipes);
-          state.mealPlan[week][d][2] = main ? main.id : null;
-        }
-
-        // SLOT 3: Kids PM Snack / Afternoon (5 PM)
-        if (isRuleOn(tenets, 'evening-salad') && salads.length > 0) {
-          // Use salad for evening concept, put soup/light item here
-          const light = pick(soups.length > 0 ? soups : salads);
-          state.mealPlan[week][d][3] = light ? light.id : null;
-        } else {
-          const s = pick(snacks.length > 0 ? snacks : state.recipes);
-          state.mealPlan[week][d][3] = s ? s.id : null;
-        }
-
-        // SLOT 4: Evening/Dinner (5:30 PM / 7 PM)
-        if (d === 6 && isRuleOn(tenets, 'friday-comfort')) {
-          // Friday comfort night
-          const comfortKey = 'comfort-w' + week;
-          const comfortRule = tenets.comfort.rules.find(r => r.id === comfortKey);
-          if (comfortRule && comfortRule.on) {
-            // Try to find matching recipe
-            const comfortName = comfortRule.text.split(':')[1]?.trim().split('+')[0]?.trim().toLowerCase() || '';
-            const comfortRecipe = state.recipes.find(r => r.name.toLowerCase().includes(comfortName.substring(0, 8)));
-            state.mealPlan[week][d][4] = comfortRecipe ? comfortRecipe.id : (pick(curries.length > 0 ? curries : state.recipes) || {}).id || null;
-          } else {
-            const dn = pick(curries.length > 0 ? curries : state.recipes);
-            state.mealPlan[week][d][4] = dn ? dn.id : null;
-          }
-        } else if (isRuleOn(tenets, 'evening-salad') && salads.length > 0) {
-          const sal = pick(salads);
-          state.mealPlan[week][d][4] = sal ? sal.id : null;
-        } else {
-          const dn = pick(curries.length > 0 ? curries : state.recipes);
-          state.mealPlan[week][d][4] = dn ? dn.id : null;
-        }
+        state.mealPlan[week][d] = [...PRESET_MEAL_PLAN[week][d]];
       }
+      closeTenets();
+      render();
+      autoSave();
+    }
 
+    function resetAllWeeksToPreset() {
+      state.mealPlan = clonePreset();
       closeTenets();
       render();
       autoSave();
