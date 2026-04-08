@@ -1381,7 +1381,13 @@
         const raw = localStorage.getItem(STORAGE_KEY);
         if (!raw) return false;
         const data = JSON.parse(raw);
-        if (data.mealPlan) state.mealPlan = data.mealPlan;
+        if (data.mealPlan) {
+          // Only override preset plan if saved data has actual meals (not all nulls)
+          const hasAnyMeals = Object.values(data.mealPlan).some(week =>
+            Object.values(week).some(day => day.some(slot => slot !== null))
+          );
+          if (hasAnyMeals) state.mealPlan = data.mealPlan;
+        }
         if (data.shoppingList) state.shoppingList = data.shoppingList;
         if (data.pantry) state.pantry = data.pantry;
         if (data.customRecipes) data.customRecipes.forEach(cr => { if (!state.recipes.find(r => r.id === cr.id)) state.recipes.push(cr); });
