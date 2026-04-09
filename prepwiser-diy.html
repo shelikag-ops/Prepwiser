@@ -384,7 +384,7 @@
         <button class="btn-secondary" onclick="resetAllWeeksToPreset()" style="font-size:12px;color:var(--color-saffron);border-color:var(--color-saffron)">↺ Reset All 3 Weeks</button>
         <div style="display:flex;gap:10px">
           <button class="btn-secondary" onclick="closeTenets()">Cancel</button>
-          <button class="btn-primary" onclick="generateFromTenets()">✨ Load Preset for Week</button>
+          <button class="btn-primary" onclick="generateFromTenets()">✨ Generate from Tenets</button>
         </div>
       </div>
     </div>
@@ -1090,16 +1090,21 @@
       const tenets = getTenets();
       let html = '';
       Object.entries(tenets).forEach(([section, data]) => {
+        if (section === 'customRules') return; // skip, handled below
         html += `<div class="tenet-section"><h3>${data.label}</h3>`;
         data.rules.forEach((rule, idx) => {
           html += `<div class="tenet-row">`;
           html += `<input type="checkbox" class="tenet-toggle" data-section="${section}" data-idx="${idx}" ${rule.on ? 'checked' : ''}>`;
-          html += `<div class="tenet-label">${rule.text}`;
+          html += `<div class="tenet-label" style="flex:1">`;
+          // Editable text field for the rule
+          html += `<input type="text" class="tenet-text-input" data-section="${section}" data-idx="${idx}" value="${rule.text.replace(/"/g, '&quot;')}" style="width:100%;padding:4px 8px;border:1px solid transparent;border-radius:4px;font-size:13px;font-family:var(--font-family);color:var(--color-deep-brown);background:transparent;transition:all 200ms" onfocus="this.style.borderColor='var(--color-saffron)';this.style.background='white'" onblur="this.style.borderColor='transparent';this.style.background='transparent'">`;
           if (rule.editable) {
-            html += ` <input type="number" class="tenet-input" data-section="${section}" data-idx="${idx}" data-field="value" value="${rule.value}"> ${rule.editable}`;
+            html += `<div style="margin-top:4px;display:flex;align-items:center;gap:6px"><span style="font-size:12px;color:var(--color-mid-brown)">Value:</span><input type="number" class="tenet-input" data-section="${section}" data-idx="${idx}" data-field="value" value="${rule.value}" style="width:80px"> <span style="font-size:12px;color:var(--color-mid-brown)">${rule.editable}</span></div>`;
           }
           html += `</div></div>`;
         });
+        // Add rule button
+        html += `<button class="btn-secondary" onclick="addTenetRule('${section}')" style="font-size:11px;padding:4px 10px;margin-top:6px">+ Add rule</button>`;
         html += '</div>';
       });
       html += `<div class="tenet-section"><h3>Custom Rules</h3>`;
@@ -1108,24 +1113,45 @@
       document.getElementById('tenets-overlay').classList.add('active');
     }
 
+    function addTenetRule(section) {
+      const tenets = getTenets();
+      if (!tenets[section]) return;
+      const newId = section + '-custom-' + Date.now();
+      tenets[section].rules.push({ id: newId, text: 'New rule — click to edit', on: true });
+      saveTenets(tenets);
+      // Re-render modal
+      closeTenets();
+      generateMealPlan();
+    }
+
     function closeTenets() {
       document.getElementById('tenets-overlay').classList.remove('active');
     }
 
     function readTenetsFromModal() {
       const tenets = getTenets();
+      // Read toggle states
       document.querySelectorAll('.tenet-toggle').forEach(cb => {
         const section = cb.dataset.section, idx = parseInt(cb.dataset.idx);
         if (tenets[section] && tenets[section].rules[idx]) {
           tenets[section].rules[idx].on = cb.checked;
         }
       });
+      // Read edited rule text
+      document.querySelectorAll('.tenet-text-input').forEach(inp => {
+        const section = inp.dataset.section, idx = parseInt(inp.dataset.idx);
+        if (tenets[section] && tenets[section].rules[idx]) {
+          tenets[section].rules[idx].text = inp.value;
+        }
+      });
+      // Read numeric values
       document.querySelectorAll('.tenet-input').forEach(inp => {
         const section = inp.dataset.section, idx = parseInt(inp.dataset.idx);
         if (tenets[section] && tenets[section].rules[idx]) {
           tenets[section].rules[idx].value = parseInt(inp.value) || 0;
         }
       });
+      // Read custom rules textarea
       const customEl = document.getElementById('custom-tenets');
       if (customEl) tenets.customRules = customEl.value;
       saveTenets(tenets);
@@ -1142,12 +1168,143 @@
     }
 
     function generateFromTenets() {
-      readTenetsFromModal(); // Save any tenet changes
-      // Load preset plan for current week (deep copy so edits don't mutate PRESET)
+      const tenets = readTenetsFromModal();
       const week = state.currentWeek;
+
+      // Start from preset baseline (deep copy)
       for (let d = 0; d < 7; d++) {
         state.mealPlan[week][d] = [...PRESET_MEAL_PLAN[week][d]];
       }
+
+      // Build recipe pools for swaps
+      const pools = {
+        breakfasts: state.recipes.filter(r => r.category === 'Breakfast' || r.tags?.includes('eggs')),
+        curries: state.recipes.filter(r => ['Gravies & Curries', 'Dry Vegetables', 'Fancy Meals'].includes(r.category)),
+        dals: state.recipes.filter(r => ['Dals & Breads', 'Dal Specialties'].includes(r.category) || r.name.toLowerCase().includes('dal')),
+        salads: state.recipes.filter(r => r.category === 'Salads'),
+        soups: state.recipes.filter(r => r.category === 'Soups'),
+        snacks: state.recipes.filter(r => ['Sweets & Snacks', 'Starters'].includes(r.category)),
+        fruits: state.recipes.filter(r => r.id.startsWith('fruit-')),
+        comfort: state.recipes.filter(r => r.tags?.includes('comfort') || r.category === 'Fancy Meals')
+      };
+      const used = new Set();
+      function pickFrom(arr) {
+        const avail = isRuleOn(tenets, 'no-repeats') ? arr.filter(r => !used.has(r.id)) : arr;
+        if (avail.length === 0) return arr.length > 0 ? arr[Math.floor(Math.random() * arr.length)] : null;
+        const r = avail[Math.floor(Math.random() * avail.length)];
+        if (r) used.add(r.id);
+        return r;
+      }
+
+      // Track what's already placed so no-repeats works
+      for (let d = 0; d < 7; d++) {
+        state.mealPlan[week][d].forEach(id => { if (id) used.add(id); });
+      }
+
+      // Apply tenet-driven modifications
+      for (let d = 0; d < 7; d++) {
+        const plan = state.mealPlan[week][d];
+
+        // ── SLOT 0: Breakfast ──
+        if (d === 1) { // Sunday
+          if (!isRuleOn(tenets, 'sunday-eatout')) {
+            // Sunday eating out disabled — swap to a real breakfast
+            used.delete(plan[0]);
+            const b = pickFrom(pools.breakfasts);
+            plan[0] = b ? b.id : plan[0];
+          }
+        }
+        if (!isRuleOn(tenets, 'breakfast-eggs')) {
+          // Remove egg-based breakfasts, replace with chilla/dosa/idli
+          const curr = plan[0] ? getRecipeById(plan[0]) : null;
+          if (curr && (curr.name.toLowerCase().includes('egg') || curr.name.toLowerCase().includes('scramble') || curr.name.toLowerCase().includes('omelette') || curr.name.toLowerCase().includes('frittata') || curr.name.toLowerCase().includes('muffin'))) {
+            used.delete(plan[0]);
+            const noEgg = pools.breakfasts.filter(r => !r.name.toLowerCase().includes('egg') && !r.name.toLowerCase().includes('scramble') && !r.name.toLowerCase().includes('omelette') && !r.name.toLowerCase().includes('frittata'));
+            const b = pickFrom(noEgg.length > 0 ? noEgg : pools.breakfasts);
+            plan[0] = b ? b.id : plan[0];
+          }
+        }
+        if (!isRuleOn(tenets, 'hypothyroid') && d === 2) {
+          // Monday Brazil nuts rule off — no effect on meal, just informational
+        }
+
+        // ── SLOT 1: Kids AM Snack ──
+        if (d === 0) { // Saturday
+          if (!isRuleOn(tenets, 'saturday-pancakes')) {
+            // Replace banana pancakes with fruit
+            used.delete(plan[1]);
+            const f = pickFrom(pools.fruits);
+            plan[1] = f ? f.id : plan[1];
+          }
+        }
+
+        // ── SLOT 2: Lunch ──
+        if (!isRuleOn(tenets, 'lunch-dal')) {
+          // Replace dal-based lunches with curries
+          const curr = plan[2] ? getRecipeById(plan[2]) : null;
+          if (curr && (curr.name.toLowerCase().includes('dal') || curr.name.toLowerCase().includes('daal') || curr.category === 'Dals & Breads')) {
+            used.delete(plan[2]);
+            const c = pickFrom(pools.curries);
+            plan[2] = c ? c.id : plan[2];
+          }
+        }
+        if (!isRuleOn(tenets, 'lunch-grain')) {
+          // Informational — grain is implied, no meal swap needed
+        }
+
+        // ── SLOT 4: Evening ──
+        if (d === 6) { // Friday
+          if (!isRuleOn(tenets, 'friday-comfort')) {
+            // Comfort night disabled — replace with salad bowl
+            used.delete(plan[4]);
+            const s = pickFrom(pools.salads.length > 0 ? pools.salads : pools.curries);
+            plan[4] = s ? s.id : plan[4];
+          }
+        }
+        if (!isRuleOn(tenets, 'evening-salad') && d !== 6) {
+          // Salad-based evenings disabled — replace with curries/soups
+          const curr = plan[4] ? getRecipeById(plan[4]) : null;
+          if (curr && (curr.category === 'Salads' || curr.name.toLowerCase().includes('bowl'))) {
+            used.delete(plan[4]);
+            const alt = pickFrom([...pools.soups, ...pools.curries]);
+            plan[4] = alt ? alt.id : plan[4];
+          }
+        }
+        if (!isRuleOn(tenets, 'evening-smoothie')) {
+          // Informational — smoothie is a side, not a meal slot
+        }
+
+        // ── Variety: swap out repeats if rule is on ──
+        if (isRuleOn(tenets, 'variety')) {
+          // Check protein source variety across the week — mostly informational
+          // The preset already has good variety built in
+        }
+      }
+
+      // ── No repeats enforcement (final pass) ──
+      if (isRuleOn(tenets, 'no-repeats')) {
+        const weekIds = [];
+        for (let d = 0; d < 7; d++) {
+          for (let m = 0; m < 5; m++) {
+            const id = state.mealPlan[week][d][m];
+            if (id && weekIds.includes(id) && !id.startsWith('fruit-') && id !== 'eating-out-brunch' && id !== 'banana-pancakes-kids') {
+              // Duplicate found — try to swap
+              const curr = getRecipeById(id);
+              if (curr) {
+                const catPool = state.recipes.filter(r => r.category === curr.category && !weekIds.includes(r.id));
+                if (catPool.length > 0) {
+                  const swap = catPool[Math.floor(Math.random() * catPool.length)];
+                  state.mealPlan[week][d][m] = swap.id;
+                  weekIds.push(swap.id);
+                  continue;
+                }
+              }
+            }
+            if (id) weekIds.push(id);
+          }
+        }
+      }
+
       closeTenets();
       render();
       autoSave();
