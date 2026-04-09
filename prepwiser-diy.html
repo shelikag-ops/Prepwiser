@@ -1424,115 +1424,173 @@
     };
 
     // Generate morning prep steps dynamically based on the day's meals
+    // ── Structured prep: returns { sections: [{title, icon, steps}] } ──
+
     function getMorningPrep(week, day) {
       const meals = state.mealPlan[week][day];
-      const steps = [];
+      const sections = [];
       const bfast = meals[0] ? getRecipeById(meals[0]) : null;
+      const kidsAM = meals[1] ? getRecipeById(meals[1]) : null;
       const lunch = meals[2] ? getRecipeById(meals[2]) : null;
 
-      if (day === 1) { // Sunday
-        steps.push('Eating out for breakfast — enjoy!');
+      // ── BREAKFAST ──
+      const bSteps = [];
+      if (day === 1) {
+        bSteps.push('Eating out for breakfast — enjoy!');
       } else if (bfast) {
         const bn = bfast.name.toLowerCase();
-        if (bn.includes('idli') || bn.includes('dosa')) steps.push('Grind batter to consistency (thin with water for dosa)', 'Heat griddle/tawa for dosa/idli', 'Warm sambar, prepare fresh tadka (ghee + mustard + curry leaves)');
-        else if (bn.includes('chilla')) steps.push('Mix chilla batter to pouring consistency', 'Heat flat tawa on medium', 'Prepare green chutney side');
-        else if (bn.includes('egg') || bn.includes('bhurji') || bn.includes('scramble') || bn.includes('omelette')) steps.push('Crack and whisk eggs', 'Dice capsicum, tomato, onion for bhurji/scramble', 'Toast bread slices');
-        else if (bn.includes('frittata') || bn.includes('muffin')) steps.push('Preheat oven to 180°C', 'Prepare frittata/muffin batter from fridge', 'Bake 18-25 min (fully passive)');
-        else if (bn.includes('poha')) steps.push('Rinse and soak poha flattened rice 2 min', 'Prep peas, peanuts, curry leaves for tempering');
-        else if (bn.includes('avocado')) steps.push('Toast seeded bread', 'Mash avocado with lemon, salt, chilli', 'Poach eggs in simmering water 3 min');
-        else if (bn.includes('ragi roti')) steps.push('Knead ragi roti dough with warm water', 'Set out curd and green chutney');
-        else if (bn.includes('dalia')) steps.push('Pressure cook dalia with carrots, peas, capsicum', 'Temper with cumin and curry leaves');
-        else if (bn.includes('paneer bhurji')) steps.push('Crumble paneer from fridge', 'Sauté onion, capsicum, tomato for bhurji', 'Toast bread');
-        else steps.push(`Prepare breakfast: ${bfast.name}`);
-        steps.push('Set out: 5 almonds + 1 walnut + 1 dried fig per adult');
-        if (day === 2) steps.push('Brazil nuts for hypothyroid adult (Monday only)');
+        if (bn.includes('idli') || bn.includes('dosa')) { bSteps.push('Grind batter to consistency (thin with water for dosa)', 'Heat griddle/tawa', 'Warm sambar, prepare fresh tadka (ghee + mustard + curry leaves)'); }
+        else if (bn.includes('chilla')) { bSteps.push('Mix chilla batter to pouring consistency', 'Heat flat tawa on medium', 'Prepare green chutney side'); }
+        else if (bn.includes('egg') || bn.includes('bhurji') || bn.includes('scramble') || bn.includes('omelette')) { bSteps.push('Crack and whisk eggs', 'Dice capsicum, tomato, onion for bhurji/scramble', 'Toast bread slices'); }
+        else if (bn.includes('frittata') || bn.includes('muffin')) { bSteps.push('Preheat oven to 180°C', 'Prepare batter from fridge', 'Bake 18–25 min (fully passive)'); }
+        else if (bn.includes('poha')) { bSteps.push('Rinse and soak poha 2 min', 'Prep peas, peanuts, curry leaves for tempering'); }
+        else if (bn.includes('avocado')) { bSteps.push('Toast seeded bread', 'Mash avocado with lemon, salt, chilli', 'Poach eggs in simmering water 3 min'); }
+        else if (bn.includes('ragi roti')) { bSteps.push('Knead ragi roti dough with warm water', 'Set out curd and green chutney'); }
+        else if (bn.includes('dalia')) { bSteps.push('Pressure cook dalia with carrots, peas, capsicum', 'Temper with cumin and curry leaves'); }
+        else if (bn.includes('paneer bhurji')) { bSteps.push('Crumble paneer from fridge', 'Sauté onion, capsicum, tomato for bhurji', 'Toast bread'); }
+        else { bSteps.push(`Prepare: ${bfast.name}`); }
+        bSteps.push('Set out: 5 almonds + 1 walnut + 1 dried fig per adult');
+        if (day === 2) bSteps.push('Brazil nuts for hypothyroid adult (Monday only)');
       }
+      sections.push({ title: `☀ Breakfast — ${bfast ? bfast.name : 'Not set'}`, icon: '☀', steps: bSteps });
 
-      // Kids AM snack
-      const kidsAM = meals[1] ? getRecipeById(meals[1]) : null;
+      // ── KIDS AM SNACK (11 AM) ──
+      const kSteps = [];
       if (kidsAM) {
-        if (kidsAM.name.toLowerCase().includes('pancake')) steps.push('Banana Pancakes: mash 2 bananas + 2 eggs + oat flour + cinnamon, cook on griddle');
-        else steps.push(`Kids AM snack: wash and prep ${kidsAM.name}`);
+        if (kidsAM.name.toLowerCase().includes('pancake')) kSteps.push('Mash 2 ripe bananas + 2 eggs + oat flour + cinnamon', 'Cook small pancakes on griddle until golden');
+        else kSteps.push(`Wash and prep: ${kidsAM.name}`);
       }
+      sections.push({ title: `🍌 Kids AM Snack — ${kidsAM ? kidsAM.name : 'Not set'}`, icon: '🍌', steps: kSteps });
 
-      // Lunch prep
+      // ── LUNCH ──
+      const lSteps = [];
       if (lunch) {
         const ln = lunch.name.toLowerCase();
-        if (day === 0 || day === 3 || day === 5) { // Cook days (Sat/Tue/Thu)
-          steps.push(`Cook lunch: ${lunch.name} (see cook session above)`);
+        if (day === 0 || day === 3 || day === 5) {
+          lSteps.push(`Cook: ${lunch.name} (see cook session details)`);
         } else {
-          // Zero-cook days: assemble, reheat
           if (ln.includes('rajma') || ln.includes('lobia') || ln.includes('chole') || ln.includes('dal') || ln.includes('curry') || ln.includes('stew')) {
-            steps.push(`Reheat ${lunch.name} from batch — add fresh tadka before serving`);
+            lSteps.push(`Reheat ${lunch.name} from batch`, 'Add fresh tadka before serving (ghee + mustard + curry leaves)');
           } else if (ln.includes('dosa')) {
-            steps.push(`Make fresh dosa from batter — thin with water, spread on hot tawa`);
+            lSteps.push('Make fresh dosa from batter — thin with water, spread on hot tawa');
           } else {
-            steps.push(`Assemble lunch: ${lunch.name}`);
+            lSteps.push(`Assemble: ${lunch.name}`);
           }
-          steps.push('Steam or sauté fresh side vegetables');
-          steps.push('Cook/reheat grain base (rice, quinoa, or warm roti)');
+          lSteps.push('Steam or sauté fresh side vegetables');
+          lSteps.push('Cook/reheat grain base (rice, quinoa, or warm roti)');
         }
       }
+      sections.push({ title: `🥗 Lunch — ${lunch ? lunch.name : 'Not set'}`, icon: '🥗', steps: lSteps });
 
-      return steps;
+      return sections;
     }
 
-    // Generate evening prep steps dynamically
     function getEveningPrep(week, day) {
       const meals = state.mealPlan[week][day];
-      const steps = [];
-      const evening = meals[4] ? getRecipeById(meals[4]) : null;
+      const sections = [];
       const kidsPM = meals[3] ? getRecipeById(meals[3]) : null;
+      const evening = meals[4] ? getRecipeById(meals[4]) : null;
 
-      // Kids PM snack
-      if (kidsPM) steps.push(`Kids PM snack: wash and prep ${kidsPM.name}`);
+      // ── KIDS PM SNACK + CHAI ──
+      const snackSteps = [];
+      if (kidsPM) snackSteps.push(`Wash and prep: ${kidsPM.name}`);
+      snackSteps.push('Masala chai for adults (~4:30 PM)');
+      sections.push({ title: `🍎 Snack & Chai — ${kidsPM ? kidsPM.name : ''}`, icon: '🍎', steps: snackSteps });
 
-      // 4:30 PM chai
-      steps.push('Masala chai for adults (~4:30 PM)');
-
-      // Evening meal
+      // ── EVENING MEAL ──
+      const eSteps = [];
       if (evening) {
         const en = evening.name.toLowerCase();
         if (en.includes('bowl') || en.includes('salad') || en.includes('greens') || en.includes('kale') || en.includes('romaine') || en.includes('arugula') || en.includes('spinach') || en.includes('watercress') || en.includes('rocket')) {
-          steps.push('Roast vegetables for salad bowl (sweet potato / beets / carrots — 25 min at 200°C)');
-          steps.push(`Assemble bowl: ${evening.name}`);
-          steps.push('Drizzle dressing from batch jar');
+          eSteps.push('Roast vegetables (sweet potato / beets / carrots — 25 min at 200°C)');
+          eSteps.push(`Assemble bowl: ${evening.name}`);
+          eSteps.push('Drizzle dressing from batch jar');
         } else if (en.includes('soup')) {
-          steps.push(`Cook ${evening.name} — blend smooth`);
-          steps.push('Toast seeded bread on the side');
+          eSteps.push(`Cook: ${evening.name} — blend smooth`);
+          eSteps.push('Toast seeded bread on the side');
         } else if (en.includes('comfort') || en.includes('lababdar') || en.includes('khichdi') || en.includes('toasties') || en.includes('pav bhaji')) {
-          steps.push(`🌟 Comfort Night! Cook: ${evening.name}`);
-          steps.push('Kids get pasta or simpler version');
+          eSteps.push(`🌟 Comfort Night! Cook: ${evening.name}`);
+          eSteps.push('Kids get pasta or simpler version');
         } else {
-          steps.push(`Prepare evening: ${evening.name}`);
+          eSteps.push(`Prepare: ${evening.name}`);
         }
       }
+      sections.push({ title: `🌿 Evening Meal — ${evening ? evening.name : 'Not set'}`, icon: '🌿', steps: eSteps });
 
-      // Smoothie
-      steps.push('Blend evening smoothie: take labelled fruit pack from freezer + add fresh liquid base + whey isolate + Greek yogurt');
+      // ── SMOOTHIE + KIDS DINNER ──
+      sections.push({ title: '🥤 Smoothie & Kids Dinner', icon: '🥤', steps: [
+        'Blend adult smoothie: labelled fruit pack from freezer + fresh liquid base + whey isolate + Greek yogurt',
+        "Kids dinner (7 PM): reheat today's lunch",
+        'Kids bedtime milk or smoothie'
+      ]});
 
-      // Kids dinner at 7 PM
-      steps.push("Kids dinner (7 PM): reheat today's lunch");
-      steps.push('Kids bedtime milk or smoothie');
+      return sections;
+    }
 
-      // Tomorrow prep
-      if (day < 6) {
-        const tomorrowMeals = state.mealPlan[week][day + 1];
-        const tBfast = tomorrowMeals[0] ? getRecipeById(tomorrowMeals[0]) : null;
-        if (tBfast) {
-          const tbn = tBfast.name.toLowerCase();
-          if (tbn.includes('idli') || tbn.includes('dosa')) steps.push('Check batter fermentation for tomorrow morning');
-          if (tbn.includes('frittata')) steps.push('Frittata batter is in fridge — bake straight from cold tomorrow');
-        }
-        steps.push('Check and prep fresh salad veg for tomorrow if needed');
+    // ── NEXT DAY PREP (separate section) ──
+    function getNextDayPrep(week, day) {
+      if (day >= 6) return []; // Friday = last day of week
+      const tomorrowMeals = state.mealPlan[week][day + 1];
+      const steps = [];
+      const tBfast = tomorrowMeals[0] ? getRecipeById(tomorrowMeals[0]) : null;
+      const tLunch = tomorrowMeals[2] ? getRecipeById(tomorrowMeals[2]) : null;
+      const tEvening = tomorrowMeals[4] ? getRecipeById(tomorrowMeals[4]) : null;
+
+      if (tBfast) {
+        const tbn = tBfast.name.toLowerCase();
+        if (tbn.includes('idli') || tbn.includes('dosa')) steps.push(`Tomorrow breakfast: ${tBfast.name} — check batter fermentation`);
+        else if (tbn.includes('frittata')) steps.push(`Tomorrow breakfast: ${tBfast.name} — batter is in fridge, bake straight from cold`);
+        else if (tbn.includes('chilla')) steps.push(`Tomorrow breakfast: ${tBfast.name} — check chilla batter is ready`);
+        else steps.push(`Tomorrow breakfast: ${tBfast.name}`);
       }
-
+      if (tLunch) {
+        const tln = tLunch.name.toLowerCase();
+        if (tln.includes('rajma') || tln.includes('lobia') || tln.includes('chole') || tln.includes('curry') || tln.includes('stew') || tln.includes('dal')) {
+          steps.push(`Tomorrow lunch: ${tLunch.name} — batch is in fridge, just reheat + tadka`);
+        } else {
+          steps.push(`Tomorrow lunch: ${tLunch.name} — prep any fresh ingredients`);
+        }
+      }
+      if (tEvening) {
+        const ten = tEvening.name.toLowerCase();
+        if (ten.includes('bowl') || ten.includes('salad')) steps.push(`Tomorrow evening: ${tEvening.name} — check roasting veg is prepped`);
+      }
+      steps.push('Prep fresh salad vegetables if needed (cucumber, tomato, greens)');
       return steps;
+    }
+
+    // ── 2-DAY INGREDIENT LOOK-AHEAD ──
+    function getIngredientLookAhead(week, day) {
+      const items = [];
+      // Check day+1 and day+2
+      for (let ahead = 1; ahead <= 2; ahead++) {
+        const targetDay = day + ahead;
+        if (targetDay > 6) continue;
+        const dayName = SHORT_DAYS_PREP[targetDay];
+        const dayMeals = state.mealPlan[week][targetDay];
+        for (let m = 0; m < 5; m++) {
+          const recipeId = dayMeals[m];
+          if (!recipeId) continue;
+          const recipe = getRecipeById(recipeId);
+          if (!recipe || !recipe.ingredients || recipe.ingredients.length === 0) continue;
+          items.push({ day: dayName, daysAhead: ahead, meal: recipe.name, ingredients: recipe.ingredients });
+        }
+      }
+      return items;
     }
 
     function selectPrepDay(d) {
       state.currentDay = d;
       renderPrepPanels();
+    }
+
+    function renderPrepSections(sections, prefix) {
+      return sections.map((sec, si) => {
+        const stepsHtml = sec.steps.map((step, idx) =>
+          `<div class="prep-step"><input type="checkbox" id="${prefix}-${si}-${idx}"><label for="${prefix}-${si}-${idx}">${step}</label></div>`
+        ).join('');
+        return `<div style="margin-bottom:14px"><div style="font-size:13px;font-weight:700;color:var(--color-saffron);margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid rgba(232,130,12,0.2)">${sec.title}</div>${stepsHtml || '<div style="font-size:12px;color:var(--color-mid-brown);font-style:italic;padding:4px 0">No prep needed</div>'}</div>`;
+      }).join('');
     }
 
     function renderPrepPanels() {
@@ -1547,9 +1605,41 @@
         ).join('');
       }
 
-      const renderSteps = (steps, prefix) => steps.map((step, idx) => `<div class="prep-step"><input type="checkbox" id="${prefix}-${idx}" onchange="updateProgress()"><label for="${prefix}-${idx}">${step}</label></div>`).join('');
-      document.getElementById('morning-prep-steps').innerHTML = renderSteps(getMorningPrep(week, day), 'am');
-      document.getElementById('evening-prep-steps').innerHTML = renderSteps(getEveningPrep(week, day), 'pm');
+      // Morning prep (sectioned)
+      const morningSections = getMorningPrep(week, day);
+      document.getElementById('morning-prep-steps').innerHTML = renderPrepSections(morningSections, 'am');
+
+      // Evening prep (sectioned)
+      const eveningSections = getEveningPrep(week, day);
+      let eveningHtml = renderPrepSections(eveningSections, 'pm');
+
+      // Next Day Prep (separate block)
+      const nextDay = getNextDayPrep(week, day);
+      if (nextDay.length > 0) {
+        eveningHtml += `<div style="margin-top:16px;padding-top:14px;border-top:2px dashed var(--color-border)"><div style="font-size:13px;font-weight:700;color:var(--color-green);margin-bottom:8px">📅 Prep for Tomorrow (${day < 6 ? SHORT_DAYS_PREP[day+1] : ''})</div>`;
+        nextDay.forEach((step, i) => {
+          eveningHtml += `<div class="prep-step"><input type="checkbox" id="nd-${i}"><label for="nd-${i}">${step}</label></div>`;
+        });
+        eveningHtml += `</div>`;
+      }
+
+      // 2-Day Ingredient Look-Ahead
+      const lookAhead = getIngredientLookAhead(week, day);
+      if (lookAhead.length > 0) {
+        eveningHtml += `<div style="margin-top:16px;padding:14px;background:white;border:1px solid var(--color-border);border-radius:var(--border-radius)">`;
+        eveningHtml += `<div style="font-size:13px;font-weight:700;color:var(--color-mid-brown);margin-bottom:10px;display:flex;align-items:center;gap:6px">🔍 Ingredient Check — Next 2 Days</div>`;
+        eveningHtml += `<p style="font-size:11px;color:var(--color-mid-brown);margin-bottom:10px;font-style:italic">Check you have these on hand. Buy or thaw anything missing.</p>`;
+        lookAhead.forEach(item => {
+          const label = item.daysAhead === 1 ? 'Tomorrow' : 'Day after';
+          eveningHtml += `<div style="margin-bottom:10px;padding:8px 10px;background:var(--color-cream);border-radius:6px;border-left:3px solid ${item.daysAhead === 1 ? 'var(--color-saffron)' : 'var(--color-green)'}">`;
+          eveningHtml += `<div style="font-size:12px;font-weight:600;color:var(--color-deep-brown);margin-bottom:4px">${label} (${item.day}) — ${item.meal}</div>`;
+          eveningHtml += `<div style="font-size:11px;color:var(--color-mid-brown);line-height:1.6">${item.ingredients.join(' · ')}</div>`;
+          eveningHtml += `</div>`;
+        });
+        eveningHtml += `</div>`;
+      }
+
+      document.getElementById('evening-prep-steps').innerHTML = eveningHtml;
     }
 
     // ── Prep Guide Tab ──
@@ -1631,20 +1721,43 @@
         html += `</ol></div></div>`;
       }
 
-      // Morning prep
-      const morningSteps = getMorningPrep(w, d);
+      // Morning prep (sectioned)
+      const morningSections = getMorningPrep(w, d);
       html += `<div class="prep-panel"><h3>🌅 Morning Prep</h3>`;
-      morningSteps.forEach((step, i) => {
-        html += `<div class="prep-step"><input type="checkbox" id="pg-am-${i}"><label for="pg-am-${i}">${step}</label></div>`;
-      });
+      html += renderPrepSections(morningSections, 'pg-am');
       html += `</div>`;
 
-      // Evening prep
-      const eveningSteps = getEveningPrep(w, d);
+      // Evening prep (sectioned)
+      const eveningSections = getEveningPrep(w, d);
       html += `<div class="prep-panel"><h3>🌙 Evening Prep</h3>`;
-      eveningSteps.forEach((step, i) => {
-        html += `<div class="prep-step"><input type="checkbox" id="pg-pm-${i}"><label for="pg-pm-${i}">${step}</label></div>`;
-      });
+      html += renderPrepSections(eveningSections, 'pg-pm');
+
+      // Next Day Prep (separate block within evening panel)
+      const nextDaySteps = getNextDayPrep(w, d);
+      if (nextDaySteps.length > 0) {
+        html += `<div style="margin-top:16px;padding-top:14px;border-top:2px dashed var(--color-border)"><div style="font-size:13px;font-weight:700;color:var(--color-green);margin-bottom:8px">📅 Prep for Tomorrow (${d < 6 ? SHORT_DAYS_PREP[d+1] : ''})</div>`;
+        nextDaySteps.forEach((step, i) => {
+          html += `<div class="prep-step"><input type="checkbox" id="pg-nd-${i}"><label for="pg-nd-${i}">${step}</label></div>`;
+        });
+        html += `</div>`;
+      }
+
+      // 2-Day Ingredient Look-Ahead
+      const lookAhead = getIngredientLookAhead(w, d);
+      if (lookAhead.length > 0) {
+        html += `<div style="margin-top:16px;padding:14px;background:white;border:1px solid var(--color-border);border-radius:var(--border-radius)">`;
+        html += `<div style="font-size:13px;font-weight:700;color:var(--color-mid-brown);margin-bottom:10px;display:flex;align-items:center;gap:6px">🔍 Ingredient Check — Next 2 Days</div>`;
+        html += `<p style="font-size:11px;color:var(--color-mid-brown);margin-bottom:10px;font-style:italic">Check you have these on hand. Buy or thaw anything missing.</p>`;
+        lookAhead.forEach(item => {
+          const label = item.daysAhead === 1 ? 'Tomorrow' : 'Day after';
+          html += `<div style="margin-bottom:10px;padding:8px 10px;background:var(--color-cream);border-radius:6px;border-left:3px solid ${item.daysAhead === 1 ? 'var(--color-saffron)' : 'var(--color-green)'}">`;
+          html += `<div style="font-size:12px;font-weight:600;color:var(--color-deep-brown);margin-bottom:4px">${label} (${item.day}) — ${item.meal}</div>`;
+          html += `<div style="font-size:11px;color:var(--color-mid-brown);line-height:1.6">${item.ingredients.join(' · ')}</div>`;
+          html += `</div>`;
+        });
+        html += `</div>`;
+      }
+
       html += `</div>`;
 
       // Friday special
