@@ -211,8 +211,9 @@
     <button class="nav-button" onclick="switchTab('nutrition')">📊 Nutrition</button>
     <button class="nav-button" onclick="switchTab('pantry')">🥫 Pantry</button>
     <button class="nav-button" onclick="switchTab('settings')">⚙️ Settings</button>
-    <div class="sync-status" id="sync-status" style="margin-top:auto;padding:10px;border-radius:var(--border-radius-sm);background:rgba(255,255,255,0.05);font-size:12px;color:rgba(255,255,255,0.6);text-align:center">
+    <div class="sync-status" id="sync-status" onclick="switchTab('settings')" style="margin-top:auto;padding:10px;border-radius:var(--border-radius-sm);background:rgba(255,255,255,0.05);font-size:12px;color:rgba(255,255,255,0.6);text-align:center;cursor:pointer" title="Click to open sync settings">
       <span id="sync-indicator">●</span> <span id="sync-text">Offline</span>
+      <div id="sync-last-time" style="font-size:10px;opacity:0.6;margin-top:2px"></div>
     </div>
   </div>
   <div class="main">
@@ -1951,9 +1952,20 @@
       } catch(e) { console.warn('LocalStorage load failed:', e); return false; }
     }
 
-    // Auto-save on any state change (debounced)
+    // Auto-save on any state change (debounced) + auto-sync to Google Sheets
     let saveTimer = null;
-    function autoSave() { clearTimeout(saveTimer); saveTimer = setTimeout(saveLocal, 1000); }
+    let syncTimer = null;
+    function autoSave() {
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(saveLocal, 1000);
+      // Also push to Google Sheets if connected (debounced 5 sec to batch rapid changes)
+      clearTimeout(syncTimer);
+      syncTimer = setTimeout(() => {
+        if (gAccessToken && getSyncConfig().sheetId) {
+          syncPushAll().catch(e => console.warn('Auto-sync push failed:', e));
+        }
+      }, 5000);
+    }
 
     // Wrap state changes with auto-save
     const origSetWeek = setWeek, origSetDay = setDay;
@@ -1987,11 +1999,15 @@
       localStorage.setItem(SYNC_CONFIG_KEY, JSON.stringify(config));
     }
 
-    function updateSyncStatus(text, color) {
+    function updateSyncStatus(text, color, showTime) {
       const indicator = document.getElementById('sync-indicator');
       const textEl = document.getElementById('sync-text');
+      const timeEl = document.getElementById('sync-last-time');
       indicator.style.color = color || 'rgba(255,255,255,0.6)';
       textEl.textContent = text;
+      if (showTime && timeEl) {
+        timeEl.textContent = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+      }
     }
 
     function syncLog(msg) {
@@ -2129,7 +2145,7 @@
     // --- PUSH: Write state to Google Sheets ---
     async function syncPushAll() {
       const config = getSyncConfig();
-      if (!config.apiKey || !config.sheetId) { syncLog('❌ Not connected — configure in Settings first'); return; }
+      if (!config.sheetId || !gAccessToken) { syncLog('❌ Not connected — configure in Settings first'); return; }
 
       updateSyncStatus('Pushing...', 'var(--color-saffron)');
       syncLog('Starting push to Google Sheets...');
@@ -2184,7 +2200,7 @@
         await sheetsAPI('PUT', 'RecipeEdits!A1', editRows);
         syncLog('✅ Recipe Edits pushed (' + edits.length + ')');
 
-        updateSyncStatus('Synced ✓', '#4CAF50');
+        updateSyncStatus('Synced ✓', '#4CAF50', true);
         syncLog('Push complete!');
       } catch(e) {
         updateSyncStatus('Push failed', 'var(--color-red)');
@@ -2195,7 +2211,7 @@
     // --- PULL: Read state from Google Sheets ---
     async function syncPullAll() {
       const config = getSyncConfig();
-      if (!config.apiKey || !config.sheetId) { syncLog('❌ Not connected'); return; }
+      if (!config.sheetId || !gAccessToken) { syncLog('❌ Not connected'); return; }
 
       updateSyncStatus('Pulling...', 'var(--color-saffron)');
       syncLog('Starting pull from Google Sheets...');
@@ -2283,7 +2299,7 @@
         renderShopping();
         renderNutrition();
         renderPantry();
-        updateSyncStatus('Synced ✓', '#4CAF50');
+        updateSyncStatus('Synced ✓', '#4CAF50', true);
         syncLog('Pull complete!');
       } catch(e) {
         updateSyncStatus('Pull failed', 'var(--color-red)');
@@ -2332,13 +2348,46 @@
     const hadSavedData = loadLocal();
     if (hadSavedData) { console.log('PrepWise: Loaded saved data from localStorage'); }
 
-    // Restore sync config to settings fields
+    // Restore sync config to settings fields + auto-reconnect
     const syncConfig = getSyncConfig();
     if (syncConfig.clientId || syncConfig.apiKey) {
       if (syncConfig.clientId) document.getElementById('settings-client-id').value = syncConfig.clientId;
       if (syncConfig.apiKey) document.getElementById('settings-api-key').value = syncConfig.apiKey;
       if (syncConfig.sheetId) document.getElementById('settings-sheet-id').value = syncConfig.sheetId;
       updateSyncStatus('Saved (sign in to sync)', 'var(--color-saffron)');
+
+      // Auto-reconnect: if we have config, silently request token when GIS loads
+      if (syncConfig.clientId && syncConfig.sheetId) {
+        const tryAutoConnect = () => {
+          if (typeof google === 'undefined' || !google.accounts) {
+            setTimeout(tryAutoConnect, 1000);
+            return;
+          }
+          const tokenClient = google.accounts.oauth2.initTokenClient({
+            client_id: syncConfig.clientId,
+            scope: 'https://www.googleapis.com/auth/spreadsheets',
+            prompt: '', // empty = silent re-auth if user previously consented
+            callback: async (response) => {
+              if (response.error) {
+                updateSyncStatus('Sign in to sync', 'var(--color-saffron)');
+                return;
+              }
+              gAccessToken = response.access_token;
+              updateSyncStatus('Connected', '#4CAF50');
+              syncLog('Auto-reconnected to Google Sheets');
+              // Auto-pull latest data from sheet
+              try {
+                await syncPullAll();
+                render();
+                syncLog('Auto-pull on load complete');
+              } catch(e) { syncLog('Auto-pull failed: ' + e.message); }
+            }
+          });
+          tokenClient.requestAccessToken();
+        };
+        // Delay to let GIS script load
+        setTimeout(tryAutoConnect, 2000);
+      }
     }
 
     // Update switchTab to include settings
