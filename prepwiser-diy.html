@@ -1094,8 +1094,9 @@
       return JSON.parse(JSON.stringify(DEFAULT_TENETS));
     }
 
-    function saveTenets(tenets) {
+    function saveTenets(tenets, skipSync) {
       localStorage.setItem('prepwise_tenets', JSON.stringify(tenets));
+      if (!skipSync && typeof autoSave === 'function') autoSave();
     }
 
     function generateMealPlan() {
@@ -2243,6 +2244,20 @@
         await sheetsAPI('PUT', 'RecipeEdits!A1', editRows);
         syncLog('✅ Recipe Edits pushed (' + edits.length + ')');
 
+        // 6. Push Tenets
+        const tenets = getTenets();
+        const tenetsRows = [['TenetsJSON'], [JSON.stringify(tenets)]];
+        try {
+          await sheetsAPI('PUT', 'Tenets!A1', tenetsRows);
+        } catch(e) {
+          // Sheet tab may not exist yet — create it and retry
+          if (e.message.includes('400')) {
+            await sheetsBatchUpdate([{ addSheet: { properties: { title: 'Tenets' } } }]);
+            await sheetsAPI('PUT', 'Tenets!A1', tenetsRows);
+          } else throw e;
+        }
+        syncLog('✅ Tenets pushed');
+
         updateSyncStatus('Synced ✓', '#4CAF50', true);
         syncLog('Push complete!');
       } catch(e) {
@@ -2335,6 +2350,16 @@
             syncLog('✅ Recipe Edits pulled');
           }
         } catch(e) { syncLog('⚠️ Recipe Edits: ' + e.message); }
+
+        // 6. Pull Tenets
+        try {
+          const tenetsData = await sheetsAPI('GET', 'Tenets!A2:A2');
+          if (tenetsData.values && tenetsData.values.length > 0 && tenetsData.values[0][0]) {
+            const pulled = JSON.parse(tenetsData.values[0][0]);
+            saveTenets(pulled, true);
+            syncLog('✅ Tenets pulled');
+          }
+        } catch(e) { syncLog('⚠️ Tenets: ' + e.message); }
 
         saveLocal();
         render();
